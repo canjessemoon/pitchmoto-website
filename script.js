@@ -23,8 +23,8 @@ function handleEmailSignup(event) {
     return;
   }
   
-  // Simulate saving email (in a real app, this would call an API)
-  console.log('Email signup:', email);
+  // Send email notification to Jesse
+  sendEmailNotification(email);
   
   // Show success message
   const successDiv = document.getElementById('signup-success');
@@ -38,6 +38,28 @@ function handleEmailSignup(event) {
     timestamp: new Date().toISOString()
   });
   localStorage.setItem('pitchmoto-signups', JSON.stringify(signups));
+}
+
+// Send email notification to Jesse
+function sendEmailNotification(userEmail) {
+  const subject = encodeURIComponent('New PitchMoto Email Signup');
+  const body = encodeURIComponent(`New email signup for PitchMoto website:
+
+Email: ${userEmail}
+Timestamp: ${new Date().toLocaleString()}
+Page: ${window.location.href}
+
+This person wants to be notified when PitchMoto launches!`);
+  
+  // Create mailto link to send notification
+  const mailtoLink = `mailto:jdmoon@gmail.com?subject=${subject}&body=${body}`;
+  
+  // Try to open the mailto link
+  try {
+    window.open(mailtoLink, '_blank');
+  } catch (error) {
+    console.log('Could not open email client, but signup was recorded.');
+  }
 }
 
 // Email validation helper
