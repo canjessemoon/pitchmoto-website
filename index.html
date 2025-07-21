@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PitchMoto – Startup Pitches in Motion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Where startup pitches move forward. Discover, upvote, and connect with the next wave of innovation—anytime, anywhere.">
+  <meta name="keywords" content="startup, pitch, investors, founders, innovation, demo day">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="logo">Pitch<span>Moto</span></div>
+    <nav>
+      <a href="#how-it-works">How it Works</a>
+      <a href="#for-investors">For Investors</a>
+      <a href="#for-founders">For Founders</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button class="cta-btn" onclick="scrollToSection('get-started')">Get Started</button>
+  </header>
+  
+  <main>
+    <section class="hero">
+      <h1 class="hero-title">
+        Pitch<span class="moto">Moto</span>
+      </h1>
+      <div class="hero-desc">
+        Where startup pitches move forward. Discover, upvote, and connect with the next wave of innovation—anytime, anywhere.
+      </div>
+      <div class="hero-actions">
+        <button onclick="scrollToSection('browse-startups')">Browse Startups</button>
+        <button class="alt" onclick="scrollToSection('upload-pitch')">Upload Your Pitch</button>
+      </div>
+    </section>
+
+    <section class="features" id="how-it-works">
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="icon">🚀</div>
+          <h3>For Founders</h3>
+          <p>Upload your pitch, share your vision, and get noticed by active investors and the community—always free for startups.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">👍</div>
+          <h3>For Investors</h3>
+          <p>Discover trending startups, upvote your favorites, and connect directly for more details or meetings.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📈</div>
+          <h3>Always-On Platform</h3>
+          <p>Startup discovery doesn't stop at Demo Day. See new pitches, track trends, and never miss a rising star.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="founder-section" id="for-founders">
+      <h2>Are you a founder?</h2>
+      <p>PitchMoto makes it easy to craft a winning pitch profile. Step-by-step guidance, helpful templates, and support every step of the way.</p>
+      <a href="#upload-pitch" onclick="scrollToSection('upload-pitch')">Upload Your Pitch</a>
+    </section>
+
+    <section class="coming-soon" id="get-started">
+      <h2>Coming Soon</h2>
+      <p>We're putting the finishing touches on PitchMoto. Be the first to know when we launch!</p>
+      <form class="email-signup" onsubmit="handleEmailSignup(event)">
+        <input type="email" placeholder="Enter your email address" required>
+        <button type="submit">Notify Me</button>
+      </form>
+      <div class="signup-success" id="signup-success" style="display: none;">
+        <p>✅ Thanks! We'll notify you when PitchMoto launches.</p>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <div class="footer-content">
+      <div class="footer-left">
+        <div class="logo">Pitch<span>Moto</span></div>
+        <p>Where startup pitches move forward.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>Platform</h4>
+          <a href="#how-it-works">How it Works</a>
+          <a href="#for-investors">For Investors</a>
+          <a href="#for-founders">For Founders</a>
+        </div>
+        <div class="footer-column">
+          <h4>Support</h4>
+          <a href="#faq">FAQ</a>
+          <a href="mailto:hello@pitchmoto.com">Contact Us</a>
+          <a href="#privacy">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2025 PitchMoto. All rights reserved.
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
