@@ -17,6 +17,7 @@ interface StartupFormData {
   industry: string
   stage: string
   fundingGoal: number
+  country: string
   website: string
   logoFile: File | null
 }
@@ -39,6 +40,18 @@ const STAGES = [
   'Pre-IPO'
 ]
 
+// Country options for incorporation
+const COUNTRIES = [
+  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 
+  'France', 'Netherlands', 'Singapore', 'Switzerland', 'Ireland',
+  'Denmark', 'Sweden', 'Norway', 'Finland', 'Belgium', 'Austria',
+  'Israel', 'India', 'Japan', 'South Korea', 'Hong Kong', 'New Zealand',
+  'Spain', 'Italy', 'Portugal', 'Luxembourg', 'Estonia', 'Lithuania',
+  'Latvia', 'Poland', 'Czech Republic', 'Slovenia', 'Brazil', 'Mexico',
+  'Argentina', 'Chile', 'Colombia', 'UAE', 'Saudi Arabia', 'South Africa',
+  'Nigeria', 'Kenya', 'Ghana', 'Egypt', 'Morocco', 'Other'
+]
+
 export default function CreateStartupPage() {
   const { user } = useAuth()
   const router = useRouter()
@@ -54,6 +67,7 @@ export default function CreateStartupPage() {
     industry: '',
     stage: '',
     fundingGoal: 100000,
+    country: '',
     website: '',
     logoFile: null
   })
@@ -109,6 +123,7 @@ export default function CreateStartupPage() {
         industry: formData.industry,
         stage: formData.stage,
         fundingGoal: formData.fundingGoal,
+        country: formData.country || undefined,
         website: formData.website || undefined
       })
 
@@ -133,6 +148,7 @@ export default function CreateStartupPage() {
           industry: formData.industry,
           stage: formData.stage,
           funding_goal: formData.fundingGoal,
+          country: formData.country || null,
           website_url: formData.website || null
         })
       })
@@ -352,6 +368,25 @@ export default function CreateStartupPage() {
                 />
                 <p className="text-gray-500 text-sm mt-1">
                   ${formData.fundingGoal.toLocaleString()} (minimum $1,000)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country of Incorporation <span className="text-gray-500">(Optional)</span>
+                </label>
+                <select
+                  value={formData.country}
+                  onChange={(e) => updateFormData('country', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                >
+                  <option value="">Select country where your business is incorporated</option>
+                  {COUNTRIES.map((country) => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+                <p className="text-gray-500 text-sm mt-1">
+                  This helps investors understand your legal jurisdiction
                 </p>
               </div>
             </div>

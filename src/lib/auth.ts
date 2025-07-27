@@ -36,13 +36,49 @@ export const auth = {
   // Sign out
   signOut: async () => {
     const { error } = await supabase.auth.signOut()
+    
+    // Also clear any stale data from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('supabase.auth.token')
+      localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1] + '-auth-token')
+    }
+    
     return { error }
+  },
+
+  // Clear session and localStorage
+  clearSession: async () => {
+    await supabase.auth.signOut()
+    
+    if (typeof window !== 'undefined') {
+      // Clear all supabase-related localStorage items
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          localStorage.removeItem(key)
+        }
+      })
+    }
   },
 
   // Get current user
   getCurrentUser: async (): Promise<AuthUser | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      // Handle invalid refresh token error
+      if (error) {
+        console.warn('Auth error:', error.message)
+        
+        // If it's a refresh token error, clear the session
+        if (error.message.includes('refresh_token') || error.message.includes('Invalid Refresh Token')) {
+          console.log('Clearing invalid session...')
+          await supabase.auth.signOut()
+          return null
+        }
+        
+        throw error
+      }
       
       if (!user) return null
 
@@ -70,6 +106,13 @@ export const auth = {
       }
     } catch (error) {
       console.error('Error getting current user:', error)
+      
+      // Handle specific auth errors
+      if (error instanceof Error && error.message.includes('refresh_token')) {
+        console.log('Clearing invalid session due to refresh token error...')
+        await supabase.auth.signOut()
+      }
+      
       return null
     }
   },

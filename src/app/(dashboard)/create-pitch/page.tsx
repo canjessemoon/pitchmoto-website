@@ -184,7 +184,7 @@ export default function CreatePitchPage() {
       console.log('Pitch creation completed successfully!')
 
       // Success! Redirect to dashboard
-      router.push('/dashboard?tab=pitches&created=true')
+      router.push('/dashboard?tab=pitches&saved=true')
 
     } catch (error: any) {
       console.error('Error creating pitch:', error)
@@ -492,12 +492,12 @@ export default function CreatePitchPage() {
             </div>
           )}
 
-          {/* Step 4: Review & Submit */}
+          {/* Step 4: Review & Save */}
           {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Review & Publish</h2>
-                <p className="text-gray-600 mt-1">Review your pitch before publishing</p>
+                <h2 className="text-xl font-semibold text-gray-900">Review & Save</h2>
+                <p className="text-gray-600 mt-1">Review your pitch details before saving as draft</p>
               </div>
 
               <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
@@ -579,12 +579,12 @@ export default function CreatePitchPage() {
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Publishing...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4 mr-1" />
-                  Publish Pitch
+                  Save Pitch
                 </>
               )}
             </button>

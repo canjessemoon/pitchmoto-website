@@ -28,6 +28,7 @@ CREATE TABLE startups (
   stage TEXT NOT NULL,
   funding_goal BIGINT NOT NULL,
   current_funding BIGINT DEFAULT 0,
+  country TEXT,
   pitch_deck_url TEXT,
   logo_url TEXT,
   website_url TEXT,

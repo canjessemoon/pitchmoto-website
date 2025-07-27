@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       industry,
       stage,
       funding_goal,
+      country,
       website_url 
     } = body
 
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
         industry,
         stage,
         funding_goal,
+        country: country || null,
         website_url: website_url || null
       })
       .select()

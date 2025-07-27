@@ -60,12 +60,35 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session) // Debug log
-        if (session?.user) {
-          const currentUser = await auth.getCurrentUser()
-          setUser(currentUser)
-        } else {
+        
+        try {
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            // Handle sign out or token refresh
+            if (session?.user) {
+              const currentUser = await auth.getCurrentUser()
+              setUser(currentUser)
+            } else {
+              setUser(null)
+            }
+          } else if (event === 'SIGNED_IN') {
+            // Handle sign in
+            if (session?.user) {
+              const currentUser = await auth.getCurrentUser()
+              setUser(currentUser)
+            }
+          } else if (event === 'USER_UPDATED') {
+            // Handle user update
+            if (session?.user) {
+              const currentUser = await auth.getCurrentUser()
+              setUser(currentUser)
+            }
+          }
+        } catch (error) {
+          console.error('Error handling auth state change:', error)
+          // If there's an error, assume user is signed out
           setUser(null)
         }
+        
         setLoading(false)
         clearTimeout(timeout)
       }
