@@ -44,6 +44,7 @@ CREATE TABLE pitches (
   pitch_type pitch_type NOT NULL DEFAULT 'text',
   video_url TEXT,
   slide_url TEXT,
+  funding_ask BIGINT,
   upvote_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

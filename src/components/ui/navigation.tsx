@@ -29,8 +29,8 @@ export function Navigation() {
           {/* Logo */}
           <div className="flex justify-start lg:w-0 lg:flex-1">
             <Link href="/" className="text-2xl font-bold">
-              <span className="text-[#405B53]">Pitch</span>
-              <span className="text-[#E64E1B]">Moto</span>
+              <span className="text-blue-600">Pitch</span>
+              <span className="text-indigo-500">Moto</span>
             </Link>
           </div>
 
@@ -38,13 +38,13 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/how-it-works"
-              className="text-gray-600 hover:text-[#405B53] transition-colors"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
             >
               How it Works
             </Link>
             <Link
               href="/faqs"
-              className="text-gray-600 hover:text-[#405B53] transition-colors"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
             >
               FAQs
             </Link>
@@ -55,16 +55,16 @@ export function Navigation() {
             {loading ? (
               // Show buttons even while loading, with a small loading indicator
               <div className="flex items-center space-x-4">
-                <div className="w-4 h-4 border-2 border-[#405B53] border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <Link
                   href="/signin"
-                  className="text-gray-600 hover:text-[#405B53] transition-colors"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Sign In
                 </Link>
                 <button
                   onClick={handleGoToApp}
-                  className="bg-[#E64E1B] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
                 >
                   Go to App
                 </button>
@@ -74,19 +74,19 @@ export function Navigation() {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/profile"
-                  className="text-gray-600 hover:text-[#405B53] transition-colors"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Profile
                 </Link>
                 <Link
                   href="/app"
-                  className="bg-[#E64E1B] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
                 >
                   Dashboard
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className="text-gray-600 hover:text-[#405B53] transition-colors"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Sign Out
                 </button>
@@ -96,13 +96,13 @@ export function Navigation() {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/signin"
-                  className="text-gray-600 hover:text-[#405B53] transition-colors"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Sign In
                 </Link>
                 <button
                   onClick={handleGoToApp}
-                  className="bg-[#E64E1B] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
                 >
                   Go to App
                 </button>

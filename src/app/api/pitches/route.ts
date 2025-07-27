@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
       pitch_type
     }
 
-    // TODO: Re-enable funding_ask once column is added to database
-    // if (funding_ask) {
-    //   insertData.funding_ask = funding_ask
-    // }
+    // Add funding_ask if provided
+    if (funding_ask) {
+      insertData.funding_ask = funding_ask
+    }
 
     console.log('Inserting data:', insertData)
 

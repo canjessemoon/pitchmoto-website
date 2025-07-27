@@ -81,7 +81,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Manage your profile and account settings.</p>
                       <Link 
                         href="/profile"
-                        className="bg-[#405B53] text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                       >
                         Edit Profile
                       </Link>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Set up your startup profile and share your vision.</p>
                       <Link 
                         href="/create-startup"
-                        className="bg-[#E64E1B] text-white px-4 py-2 rounded hover:bg-[#D1441A]"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-indigo-500"
                       >
                         Get Started
                       </Link>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Share your startup story with potential investors.</p>
                       <Link 
                         href="/create-pitch"
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600"
                       >
                         Create Pitch
                       </Link>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Manage your profile and account settings.</p>
                       <Link 
                         href="/profile"
-                        className="bg-[#405B53] text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                       >
                         Edit Profile
                       </Link>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Discover innovative startups and their pitches.</p>
                       <Link 
                         href="/browse"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-indigo-500"
                       >
                         Start Browsing
                       </Link>
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Keep track of startups you're interested in.</p>
                       <Link 
                         href="/watchlist"
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600"
                       >
                         View Watchlist
                       </Link>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Connect with founders and discuss opportunities.</p>
                       <Link 
                         href="/messages"
-                        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                        className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                       >
                         Open Messages
                       </Link>

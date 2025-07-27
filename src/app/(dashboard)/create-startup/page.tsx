@@ -215,7 +215,7 @@ export default function CreateStartupPage() {
                 key={step}
                 className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
                   step <= currentStep
-                    ? 'bg-[#405B53] text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}
               >
@@ -228,7 +228,7 @@ export default function CreateStartupPage() {
               <div
                 key={step}
                 className={`flex-1 h-2 rounded ${
-                  step <= currentStep ? 'bg-[#405B53]' : 'bg-gray-200'
+                  step <= currentStep ? 'bg-blue-600' : 'bg-gray-200'
                 }`}
               />
             ))}
@@ -477,7 +477,7 @@ export default function CreateStartupPage() {
               disabled={!validateCurrentStep()}
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                 validateCurrentStep()
-                  ? 'bg-[#405B53] text-white hover:bg-[#334A43]'
+                  ? 'bg-blue-600 text-white hover:bg-indigo-500'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -491,7 +491,7 @@ export default function CreateStartupPage() {
               className={`flex items-center px-6 py-2 rounded-md text-sm font-medium ${
                 isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#E64E1B] text-white hover:bg-[#D1441A]'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
               }`}
             >
               {isSubmitting ? (

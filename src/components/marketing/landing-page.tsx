@@ -45,7 +45,7 @@ export function LandingPage() {
           <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
           <Link 
             href="/app" 
-            className="bg-[#E64E1B] text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-500 transition-colors"
           >
             Go to Dashboard
           </Link>
@@ -78,12 +78,12 @@ export function LandingPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-5 py-3 border border-gray-300 shadow-sm placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:max-w-xs rounded-md sm:rounded-r-none"
+                className="w-full px-5 py-3 border border-gray-300 shadow-sm placeholder-gray-400 focus:ring-1 focus:ring-blue-600 focus:border-blue-600 sm:max-w-xs rounded-md sm:rounded-r-none"
                 required
               />
               <button
                 type="submit"
-                className="mt-3 w-full px-5 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-0 sm:w-auto sm:flex-shrink-0 sm:rounded-l-none"
+                className="mt-3 w-full px-5 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 sm:mt-0 sm:ml-0 sm:w-auto sm:flex-shrink-0 sm:rounded-l-none"
               >
                 Get Early Access
               </button>
@@ -119,7 +119,7 @@ export function LandingPage() {
             <div className="mt-16">
               <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
                 <div className="text-center">
-                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mx-auto mb-4">
+                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-sky-200 mx-auto mb-4">
                     <span className="text-2xl font-bold text-blue-600">1</span>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Create Your Profile</h3>
@@ -128,7 +128,7 @@ export function LandingPage() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mx-auto mb-4">
+                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-sky-200 mx-auto mb-4">
                     <span className="text-2xl font-bold text-blue-600">2</span>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Share Your Pitch</h3>
@@ -137,7 +137,7 @@ export function LandingPage() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mx-auto mb-4">
+                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-sky-200 mx-auto mb-4">
                     <span className="text-2xl font-bold text-blue-600">3</span>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Discover & Connect</h3>
@@ -146,7 +146,7 @@ export function LandingPage() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mx-auto mb-4">
+                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-sky-200 mx-auto mb-4">
                     <span className="text-2xl font-bold text-blue-600">4</span>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Build Relationships</h3>
@@ -167,7 +167,7 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/signup"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500"
             >
               Join PitchMoto
             </Link>

@@ -279,7 +279,7 @@ export default function CreatePitchPage() {
                   <p className="text-gray-600 mb-4">You need to create a startup before you can create a pitch.</p>
                   <button
                     onClick={() => router.push('/create-startup')}
-                    className="bg-[#E64E1B] text-white px-4 py-2 rounded-md hover:bg-[#D1441A]"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-indigo-500"
                   >
                     Create Startup First
                   </button>
@@ -559,7 +559,7 @@ export default function CreatePitchPage() {
               disabled={!validateCurrentStep()}
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                 validateCurrentStep()
-                  ? 'bg-[#405B53] text-white hover:bg-[#334A43]'
+                  ? 'bg-blue-600 text-white hover:bg-indigo-500'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -573,7 +573,7 @@ export default function CreatePitchPage() {
               className={`flex items-center px-6 py-2 rounded-md text-sm font-medium ${
                 isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#E64E1B] text-white hover:bg-[#D1441A]'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
               }`}
             >
               {isSubmitting ? (
