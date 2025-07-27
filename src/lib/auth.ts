@@ -41,21 +41,36 @@ export const auth = {
 
   // Get current user
   getCurrentUser: async (): Promise<AuthUser | null> => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) return null
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return null
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-    return {
-      id: user.id,
-      email: user.email!,
-      profile: profile || undefined
+      if (profileError) {
+        console.error('Error fetching profile:', profileError)
+        // Return user without profile if profile fetch fails
+        return {
+          id: user.id,
+          email: user.email!,
+          profile: undefined
+        }
+      }
+
+      return {
+        id: user.id,
+        email: user.email!,
+        profile: profile || undefined
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      return null
     }
   },
 

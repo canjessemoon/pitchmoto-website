@@ -15,6 +15,12 @@ export interface Database {
           email: string
           full_name: string | null
           user_type: 'founder' | 'investor' | 'admin'
+          bio: string | null
+          company: string | null
+          location: string | null
+          website: string | null
+          linkedin_url: string | null
+          profile_picture_url: string | null
           created_at: string
           updated_at: string
         }
@@ -23,6 +29,12 @@ export interface Database {
           email: string
           full_name?: string | null
           user_type: 'founder' | 'investor' | 'admin'
+          bio?: string | null
+          company?: string | null
+          location?: string | null
+          website?: string | null
+          linkedin_url?: string | null
+          profile_picture_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -31,6 +43,12 @@ export interface Database {
           email?: string
           full_name?: string | null
           user_type?: 'founder' | 'investor' | 'admin'
+          bio?: string | null
+          company?: string | null
+          location?: string | null
+          website?: string | null
+          linkedin_url?: string | null
+          profile_picture_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -92,6 +110,7 @@ export interface Database {
           title: string
           content: string
           pitch_type: 'text' | 'video' | 'slide'
+          funding_ask: number
           video_url: string | null
           slide_url: string | null
           upvote_count: number
@@ -104,6 +123,7 @@ export interface Database {
           title: string
           content: string
           pitch_type: 'text' | 'video' | 'slide'
+          funding_ask: number
           video_url?: string | null
           slide_url?: string | null
           upvote_count?: number
@@ -116,6 +136,7 @@ export interface Database {
           title?: string
           content?: string
           pitch_type?: 'text' | 'video' | 'slide'
+          funding_ask?: number
           video_url?: string | null
           slide_url?: string | null
           upvote_count?: number

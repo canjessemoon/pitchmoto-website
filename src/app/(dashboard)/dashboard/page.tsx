@@ -11,7 +11,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/signin')
+      router.push('/signin')
     }
   }, [user, loading, router])
 
@@ -77,11 +77,21 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Profile Settings</h3>
+                      <p className="text-gray-600 mb-4">Manage your profile and account settings.</p>
+                      <Link 
+                        href="/profile"
+                        className="bg-[#405B53] text-white px-4 py-2 rounded hover:bg-green-700"
+                      >
+                        Edit Profile
+                      </Link>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">Create Your Startup</h3>
                       <p className="text-gray-600 mb-4">Set up your startup profile and share your vision.</p>
                       <Link 
-                        href="/startup/create"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        href="/create-startup"
+                        className="bg-[#E64E1B] text-white px-4 py-2 rounded hover:bg-[#D1441A]"
                       >
                         Get Started
                       </Link>
@@ -90,7 +100,7 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-semibold mb-2">Post a Pitch</h3>
                       <p className="text-gray-600 mb-4">Share your startup story with potential investors.</p>
                       <Link 
-                        href="/pitch/create"
+                        href="/create-pitch"
                         className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                       >
                         Create Pitch
@@ -111,6 +121,16 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Profile Settings</h3>
+                      <p className="text-gray-600 mb-4">Manage your profile and account settings.</p>
+                      <Link 
+                        href="/profile"
+                        className="bg-[#405B53] text-white px-4 py-2 rounded hover:bg-green-700"
+                      >
+                        Edit Profile
+                      </Link>
+                    </div>
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">Browse Pitches</h3>
                       <p className="text-gray-600 mb-4">Discover innovative startups and their pitches.</p>

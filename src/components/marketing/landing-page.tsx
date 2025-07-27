@@ -3,10 +3,13 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAuth } from '@/components/providers'
+import { Navigation } from '@/components/ui/navigation'
 
 export function LandingPage() {
   const { user, loading } = useAuth()
   const [email, setEmail] = useState('')
+
+  console.log('LandingPage render:', { user, loading }) // Debug log
 
   const handleEmailSignup = (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,12 +23,18 @@ export function LandingPage() {
     }
   }
 
+  // Temporarily skip loading check to see if that's the issue
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="text-lg">Loading...</div>
+  //     </div>
+  //   )
+  // }
+
+  // Show loading state but allow page to continue
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    )
+    console.log('Auth is still loading...')
   }
 
   // If user is authenticated, redirect to dashboard
@@ -35,8 +44,8 @@ export function LandingPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
           <Link 
-            href="/dashboard" 
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            href="/app" 
+            className="bg-[#E64E1B] text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors"
           >
             Go to Dashboard
           </Link>
@@ -47,32 +56,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6 md:space-x-10">
-            <div className="flex justify-start lg:w-0 lg:flex-1">
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                PitchMoto
-              </Link>
-            </div>
-            <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
-              <Link
-                href="/auth/signin"
-                className="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900 mr-8"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="whitespace-nowrap bg-blue-600 border border-transparent rounded-md py-2 px-4 inline-flex items-center justify-center text-base font-medium text-white hover:bg-blue-700"
-              >
-                Sign up
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
