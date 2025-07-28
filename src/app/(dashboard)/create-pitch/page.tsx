@@ -19,6 +19,7 @@ interface PitchFormData {
   videoFile: File | null
   videoUrl: string
   onePagerFile: File | null
+  rulesAccepted: boolean
 }
 
 // Startup interface for selection
@@ -49,7 +50,8 @@ export default function CreatePitchPage() {
     deckFile: null,
     videoFile: null,
     videoUrl: '',
-    onePagerFile: null
+    onePagerFile: null,
+    rulesAccepted: false
   })
 
   // Load user's startups on component mount
@@ -87,7 +89,7 @@ export default function CreatePitchPage() {
   }
 
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1)
+    if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
 
   const prevStep = () => {
@@ -105,6 +107,12 @@ export default function CreatePitchPage() {
       case 3:
         // At least one file should be uploaded or video URL provided
         return formData.deckFile || formData.videoUrl.trim() !== '' || formData.onePagerFile
+      case 4:
+        // Review step - always valid to proceed
+        return true
+      case 5:
+        // Rules step - must accept rules to submit
+        return formData.rulesAccepted
       default:
         return true
     }
@@ -232,7 +240,7 @@ export default function CreatePitchPage() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <div
                 key={step}
                 className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
@@ -246,7 +254,7 @@ export default function CreatePitchPage() {
             ))}
           </div>
           <div className="flex space-x-1">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <div
                 key={step}
                 className={`flex-1 h-2 rounded ${
@@ -492,12 +500,12 @@ export default function CreatePitchPage() {
             </div>
           )}
 
-          {/* Step 4: Review & Save */}
+          {/* Step 4: Review */}
           {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Review & Save</h2>
-                <p className="text-gray-600 mt-1">Review your pitch details before saving as draft</p>
+                <h2 className="text-xl font-semibold text-gray-900">Review Your Pitch</h2>
+                <p className="text-gray-600 mt-1">Review your pitch details before proceeding</p>
               </div>
 
               <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
@@ -536,6 +544,76 @@ export default function CreatePitchPage() {
               )}
             </div>
           )}
+
+          {/* Step 5: Review the Rules */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Review the Rules</h2>
+                <p className="text-gray-600 mt-1">Please review our guidelines before publishing your pitch</p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-4">PitchMoto Pitch Guidelines</h3>
+                
+                <div className="space-y-3 text-gray-700">
+                  <div className="flex items-start">
+                    <span className="font-semibold text-blue-700 mr-2">1.</span>
+                    <p>Your pitch must represent a real startup or business opportunity.</p>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-semibold text-blue-700 mr-2">2.</span>
+                    <p>All information provided must be honest and clearly presented.</p>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-semibold text-blue-700 mr-2">3.</span>
+                    <p>Pitches cannot be used for fundraising for charities or nonprofits.</p>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-semibold text-blue-700 mr-2">4.</span>
+                    <p>No offers of equity, tokens, or financial securities through this platform.</p>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-semibold text-blue-700 mr-2">5.</span>
+                    <p>Pitches must not contain prohibited, illegal, or harmful content.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-blue-200">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.rulesAccepted}
+                      onChange={(e) => updateFormData('rulesAccepted', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      I have read and agree to these guidelines
+                    </span>
+                  </label>
+                </div>
+
+                <div className="mt-4">
+                  <a 
+                    href="#" 
+                    className="text-blue-600 hover:text-blue-800 text-sm underline"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      alert('Full guidelines page will be implemented in a future update.')
+                    }}
+                  >
+                    Read more about our full guidelines →
+                  </a>
+                </div>
+              </div>
+
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">{submitError}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -553,7 +631,7 @@ export default function CreatePitchPage() {
             Previous
           </button>
 
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button
               onClick={nextStep}
               disabled={!validateCurrentStep()}
@@ -571,7 +649,7 @@ export default function CreatePitchPage() {
               onClick={handleSubmit}
               disabled={isSubmitting || !validateCurrentStep()}
               className={`flex items-center px-6 py-2 rounded-md text-sm font-medium ${
-                isSubmitting
+                isSubmitting || !validateCurrentStep()
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-emerald-500 text-white hover:bg-emerald-600'
               }`}

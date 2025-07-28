@@ -1,262 +1,98 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { authHelpers, profileHelpers } from '@/lib/auth-helpers'
-import { signUpSchema, type SignUpData } from '@/lib/validations'
 
 export default function SignUpPage() {
-  const router = useRouter()
-  const [formData, setFormData] = useState<SignUpData>({
-    email: '',
-    password: '',
-    fullName: '',
-    userType: 'founder'
-  })
-  const [errors, setErrors] = useState<Partial<SignUpData>>({})
-  const [loading, setLoading] = useState(false)
-
-  const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
-    try {
-      let result
-      if (provider === 'google') {
-        result = await authHelpers.signInWithGoogle()
-      } else {
-        result = await authHelpers.signInWithLinkedIn()
-      }
-      
-      if (result.error) {
-        console.error('OAuth sign in error:', result.error)
-        alert('Sign up failed. Please try again.')
-      }
-      // Note: OAuth will redirect to callback page automatically
-    } catch (error) {
-      console.error('OAuth sign in error:', error)
-      alert('An unexpected error occurred. Please try again.')
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setErrors({})
-
-    try {
-      // Validate form data
-      const validatedData = signUpSchema.parse(formData)
-
-      // Sign up user
-      const { data, error } = await authHelpers.signUpWithEmail(
-        validatedData.email,
-        validatedData.password,
-        validatedData.fullName
-      )
-
-      if (error) {
-        setErrors({ email: error.message })
-        return
-      }
-
-      if (data.user) {
-        // Update user profile with user type
-        await profileHelpers.updateProfile(data.user.id, {
-          user_type: validatedData.userType,
-          full_name: validatedData.fullName
-        })
-        
-        router.push('/dashboard')
-      }
-    } catch (error: any) {
-      if (error.errors) {
-        const fieldErrors: Partial<SignUpData> = {}
-        error.errors.forEach((err: any) => {
-          fieldErrors[err.path[0] as keyof SignUpData] = err.message
-        })
-        setErrors(fieldErrors)
-      } else {
-        setErrors({ email: 'An unexpected error occurred' })
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-    // Clear error when user starts typing
-    if (errors[name as keyof SignUpData]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }))
-    }
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <Link href="/" className="flex justify-center">
-            <span className="text-3xl font-bold text-blue-600">PitchMoto</span>
+            <span className="text-3xl font-bold">
+              <span className="text-blue-600">Pitch</span>
+              <span className="text-indigo-500">Moto</span>
+            </span>
           </Link>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            Join PitchMoto
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to your existing account
+            Choose how you'd like to get started
+          </p>
+          <p className="mt-1 text-center text-sm text-gray-500">
+            Already have an account?{' '}
+            <Link href="/signin" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
             </Link>
           </p>
         </div>
         
-        {/* OAuth Buttons */}
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => handleOAuthSignIn('google')}
-            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+        <div className="space-y-4">
+          {/* Founder Signup */}
+          <Link
+            href="/signup/founder"
+            className="group relative w-full flex items-center justify-center py-6 px-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-gray-50 transition-all duration-200"
           >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Sign up with Google
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOAuthSignIn('linkedin')}
-            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600">
+                I'm a Founder
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Share my startup and pitch with investors
+              </p>
+              <div className="mt-3 text-xs text-gray-500">
+                • Create startup profile<br />
+                • Upload pitch deck & video<br />
+                • Connect with investors<br />
+                • Always free
+              </div>
+            </div>
+          </Link>
+
+          {/* Investor Signup */}
+          <Link
+            href="/signup/investor"
+            className="group relative w-full flex items-center justify-center py-6 px-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-gray-50 transition-all duration-200"
           >
-            <svg className="w-5 h-5 mr-2" fill="#0077B5" viewBox="0 0 24 24">
-              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-            </svg>
-            Sign up with LinkedIn
-          </button>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-indigo-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-500">
+                I'm an Investor
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Discover and invest in promising startups
+              </p>
+              <div className="mt-3 text-xs text-gray-500">
+                • Browse startup pitches<br />
+                • Upvote & comment<br />
+                • Direct messaging<br />
+                • Free & paid tiers
+              </div>
+            </div>
+          </Link>
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-50 text-gray-500">Or continue with email</span>
-          </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            By creating an account, you agree to our{' '}
+            <a href="#" className="text-blue-600 hover:text-blue-500">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="#" className="text-blue-600 hover:text-blue-500">
+              Privacy Policy
+            </a>
+          </p>
         </div>
-
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                autoComplete="name"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.fullName ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm`}
-                placeholder="Enter your full name"
-              />
-              {errors.fullName && (
-                <p className="mt-1 text-sm text-red-500">{errors.fullName}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm`}
-                placeholder="Enter your email"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm`}
-                placeholder="Create a password (min 8 characters)"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="userType" className="block text-sm font-medium text-gray-700">
-                I am a...
-              </label>
-              <select
-                id="userType"
-                name="userType"
-                required
-                value={formData.userType}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border ${
-                  errors.userType ? 'border-red-500' : 'border-gray-300'
-                } rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm`}
-              >
-                <option value="founder">Founder / Entrepreneur</option>
-                <option value="investor">Investor</option>
-              </select>
-              {errors.userType && (
-                <p className="mt-1 text-sm text-red-500">{errors.userType}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50"
-            >
-              {loading ? 'Creating account...' : 'Create account'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              By creating an account, you agree to our{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">
-                Privacy Policy
-              </a>
-            </p>
-          </div>
-        </form>
       </div>
     </div>
   )

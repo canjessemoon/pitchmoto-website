@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { authHelpers } from '@/lib/auth-helpers'
+import { authHelpers, profileHelpers } from '@/lib/auth-helpers'
 import { signInSchema, type SignInData } from '@/lib/validations'
 
 export default function SignInPage() {
@@ -53,7 +53,37 @@ export default function SignInPage() {
       }
 
       if (data.user) {
-        router.push('/dashboard')
+        // Get user profile to determine their role
+        try {
+          console.log('Fetching profile for user:', data.user.id) // Debug log
+          const { data: profile, error: profileError } = await profileHelpers.getProfile(data.user.id)
+          
+          console.log('Profile data:', profile) // Debug log
+          console.log('Profile error:', profileError) // Debug log
+          
+          if (profileError) {
+            console.error('Error fetching profile:', profileError)
+            router.push('/dashboard') // Fallback to default dashboard
+            return
+          }
+          
+          console.log('User type from profile:', profile?.user_type) // Debug log
+          
+          // Route based on user type
+          if (profile?.user_type === 'investor') {
+            console.log('Routing investor to /app/startups') // Debug log
+            router.push('/app/startups') // Investor sees startup discovery
+          } else if (profile?.user_type === 'founder') {
+            console.log('Routing founder to /dashboard') // Debug log
+            router.push('/dashboard') // Founder sees their dashboard
+          } else {
+            console.log('No valid user_type, defaulting to /dashboard') // Debug log
+            router.push('/dashboard') // Default fallback
+          }
+        } catch (error) {
+          console.error('Profile lookup error:', error)
+          router.push('/dashboard') // Fallback to default dashboard
+        }
       }
     } catch (error: any) {
       if (error.errors) {
@@ -84,14 +114,17 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <Link href="/" className="flex justify-center">
-            <span className="text-3xl font-bold text-blue-600">PitchMoto</span>
+            <span className="text-3xl font-bold">
+              <span className="text-blue-600">Pitch</span>
+              <span className="text-indigo-500">Moto</span>
+            </span>
           </Link>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
               create a new account
             </Link>
           </p>

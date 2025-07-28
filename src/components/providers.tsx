@@ -49,6 +49,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Set loading to false') // Debug log
       } catch (error) {
         console.error('Error getting initial session:', error)
+        // Clear any corrupted session data or refresh token errors
+        if (error instanceof Error && (
+          error.message.includes('session') || 
+          error.message.includes('refresh') ||
+          error.message.includes('Invalid Refresh Token')
+        )) {
+          console.log('Clearing corrupted session...')
+          await auth.clearSession()
+        }
+        setUser(null)
         setLoading(false)
         clearTimeout(timeout)
       }
@@ -85,6 +95,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           console.error('Error handling auth state change:', error)
+          // If there's a refresh token error, clear the session
+          if (error instanceof Error && (
+            error.message.includes('refresh') ||
+            error.message.includes('Invalid Refresh Token')
+          )) {
+            console.log('Clearing session due to refresh token error...')
+            await auth.clearSession()
+          }
           // If there's an error, assume user is signed out
           setUser(null)
         }

@@ -58,29 +58,39 @@ export const auth = {
           localStorage.removeItem(key)
         }
       })
+      
+      // Also clear sessionStorage
+      const sessionKeys = Object.keys(sessionStorage)
+      sessionKeys.forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          sessionStorage.removeItem(key)
+        }
+      })
+      
+      // Force reload to clear any cached auth state
+      window.location.reload()
     }
   },
 
   // Get current user
   getCurrentUser: async (): Promise<AuthUser | null> => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      // First try to get the session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      // Handle invalid refresh token error
-      if (error) {
-        console.warn('Auth error:', error.message)
-        
-        // If it's a refresh token error, clear the session
-        if (error.message.includes('refresh_token') || error.message.includes('Invalid Refresh Token')) {
-          console.log('Clearing invalid session...')
-          await supabase.auth.signOut()
-          return null
-        }
-        
-        throw error
+      if (sessionError) {
+        console.warn('Session error:', sessionError.message)
+        // Clear the session if there's an error
+        await supabase.auth.signOut()
+        return null
       }
       
-      if (!user) return null
+      if (!session || !session.user) {
+        return null
+      }
+
+      // Get user from session
+      const user = session.user
 
       // Get user profile
       const { data: profile, error: profileError } = await supabase
@@ -89,7 +99,7 @@ export const auth = {
         .eq('id', user.id)
         .single()
 
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError)
         // Return user without profile if profile fetch fails
         return {
@@ -107,10 +117,16 @@ export const auth = {
     } catch (error) {
       console.error('Error getting current user:', error)
       
-      // Handle specific auth errors
-      if (error instanceof Error && error.message.includes('refresh_token')) {
-        console.log('Clearing invalid session due to refresh token error...')
-        await supabase.auth.signOut()
+      // Handle specific auth errors by clearing the session
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase()
+        if (errorMessage.includes('refresh_token') || 
+            errorMessage.includes('invalid') || 
+            errorMessage.includes('expired') ||
+            errorMessage.includes('session')) {
+          console.log('Clearing invalid session due to auth error...')
+          await supabase.auth.signOut()
+        }
       }
       
       return null

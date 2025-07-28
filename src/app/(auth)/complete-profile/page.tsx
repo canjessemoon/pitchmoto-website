@@ -43,8 +43,12 @@ export default function CompleteProfilePage() {
         return
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Redirect based on user type
+      if (userType === 'investor') {
+        router.push('/app/startups')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error) {
       console.error('Profile creation error:', error)
       alert('An unexpected error occurred. Please try again.')

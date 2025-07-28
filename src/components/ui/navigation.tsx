@@ -4,14 +4,26 @@ import Link from 'next/link'
 import { useAuth } from '@/components/providers'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { profileHelpers } from '@/lib/auth-helpers'
 
 export function Navigation() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  const handleGoToApp = () => {
+  const handleGoToApp = async () => {
     if (user) {
-      router.push('/dashboard')
+      try {
+        const { data: profile } = await profileHelpers.getProfile(user.id)
+        if (profile?.user_type === 'investor') {
+          router.push('/app/startups')
+        } else {
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        console.error('Error getting profile:', error)
+        // Fallback to dashboard if there's an error
+        router.push('/dashboard')
+      }
     } else {
       router.push('/signin')
     }
@@ -36,6 +48,12 @@ export function Navigation() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
+            <Link
+              href="/app/startups"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Discover Startups
+            </Link>
             <Link
               href="/how-it-works"
               className="text-gray-600 hover:text-blue-600 transition-colors"
@@ -78,12 +96,12 @@ export function Navigation() {
                 >
                   Profile
                 </Link>
-                <Link
-                  href="/app"
+                <button
+                  onClick={handleGoToApp}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
                 >
-                  Dashboard
-                </Link>
+                  Go to App
+                </button>
                 <button
                   onClick={handleSignOut}
                   className="text-gray-600 hover:text-blue-600 transition-colors"
@@ -99,6 +117,12 @@ export function Navigation() {
                   className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                >
+                  Sign Up
                 </Link>
                 <button
                   onClick={handleGoToApp}

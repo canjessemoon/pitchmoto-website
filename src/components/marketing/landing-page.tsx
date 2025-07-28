@@ -93,13 +93,13 @@ export function LandingPage() {
           <div className="mt-6">
             <div className="flex justify-center space-x-6">
               <Link
-                href="/auth/signup"
+                href="/signup/founder"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Join as Founder →
               </Link>
               <Link
-                href="/auth/signup"
+                href="/signup/investor"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Join as Investor →

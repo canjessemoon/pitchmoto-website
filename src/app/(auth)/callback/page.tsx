@@ -31,8 +31,14 @@ export default function AuthCallbackPage() {
             // No profile exists, redirect to complete onboarding
             router.push('/complete-profile')
           } else {
-            // Profile exists, redirect to dashboard
-            router.push('/dashboard')
+            // Profile exists, redirect based on user type
+            if (profile.user_type === 'investor') {
+              router.push('/app/startups') // Investor sees startup discovery
+            } else if (profile.user_type === 'founder') {
+              router.push('/dashboard') // Founder sees their dashboard
+            } else {
+              router.push('/dashboard') // Default fallback
+            }
           }
         } else {
           // No session, redirect to sign in

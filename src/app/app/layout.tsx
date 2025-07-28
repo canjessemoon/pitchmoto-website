@@ -1,12 +1,17 @@
-import { redirect } from 'next/navigation'
+import { Navigation } from '@/components/ui/navigation'
 
-// This layout will handle the /app routes
+// This layout handles public app routes (/app/*)
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // For now, redirect /app to /dashboard 
-  // Later we can implement proper /app routing if needed
-  redirect('/dashboard')
+  return (
+    <div className="min-h-screen bg-white">
+      <Navigation />
+      <main>
+        {children}
+      </main>
+    </div>
+  )
 }
