@@ -28,51 +28,9 @@ export function LandingPage() {
     )
   }
 
-  // If user is authenticated, redirect to dashboard
-  if (user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
-          <Link 
-            href="/dashboard" 
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go to Dashboard
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6 md:space-x-10">
-            <div className="flex justify-start lg:w-0 lg:flex-1">
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                PitchMoto
-              </Link>
-            </div>
-            <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
-              <Link
-                href="/auth/signin"
-                className="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900 mr-8"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="whitespace-nowrap bg-blue-600 border border-transparent rounded-md py-2 px-4 inline-flex items-center justify-center text-base font-medium text-white hover:bg-blue-700"
-              >
-                Sign up
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Hero Section */}
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,13 +67,13 @@ export function LandingPage() {
           <div className="mt-6">
             <div className="flex justify-center space-x-6">
               <Link
-                href="/auth/signup"
+                href="/foundersignup"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Join as Founder →
               </Link>
               <Link
-                href="/auth/signup"
+                href="/investorsignup"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Join as Investor →
@@ -182,7 +140,7 @@ export function LandingPage() {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/auth/signup"
+              href="/signup"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Join PitchMoto
@@ -196,6 +154,31 @@ export function LandingPage() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center">
+            <div className="flex space-x-6 text-sm text-blue-600">
+              <Link
+                href="/terms"
+                className="hover:text-blue-800 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/privacy"
+                className="hover:text-blue-800 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200 text-center text-sm text-gray-400">
+            <p>&copy; {new Date().getFullYear()} PitchMoto. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

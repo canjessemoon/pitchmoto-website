@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --menu-button-top: 0;
+  --menu-button-right: 0;
 }
 
 @theme inline {

@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 export default function DashboardPage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/signin')
+      router.push('/')
     }
   }, [user, loading, router])
 
@@ -27,53 +27,24 @@ export default function DashboardPage() {
     return null
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
-  }
+  // At this point TypeScript knows user is not null
+  const userType = user.profile?.user_type || 'user'
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold text-blue-600">
-                PitchMoto
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                Welcome, {user.profile?.full_name || user.email}
-              </span>
-              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                {user.profile?.user_type || 'User'}
-              </span>
-              <button
-                onClick={handleSignOut}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Welcome to PitchMoto Dashboard
+                Welcome to Your Dashboard
               </h1>
               <p className="text-gray-600 mb-8">
-                Your {user.profile?.user_type === 'founder' ? 'startup' : 'investment'} journey starts here.
+                Your {userType === 'founder' ? 'startup' : 'investment'} journey starts here.
               </p>
               
-              {user.profile?.user_type === 'founder' ? (
+              {userType === 'founder' ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-lg shadow">
@@ -126,7 +97,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Keep track of startups you're interested in.</p>
                       <Link 
                         href="/watchlist"
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                       >
                         View Watchlist
                       </Link>
@@ -136,7 +107,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 mb-4">Connect with founders and discuss opportunities.</p>
                       <Link 
                         href="/messages"
-                        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                       >
                         Open Messages
                       </Link>

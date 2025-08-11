@@ -9,90 +9,32 @@ export interface AuthUser {
   profile?: Profile
 }
 
-export const auth = {
-  // Sign up with email and password
-  signUp: async (email: string, password: string, fullName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName
-        }
-      }
-    })
-    return { data, error }
-  },
+// Import mock auth helpers
+import {
+  signUp as mockSignUp,
+  signIn as mockSignIn,
+  signOut as mockSignOut,
+  getCurrentUser as mockGetCurrentUser,
+  updateProfile as mockUpdateProfile,
+  type Profile as MockProfile
+} from './mock-auth-helpers'
 
-  // Sign in with email and password
-  signIn: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    return { data, error }
-  },
+// Re-export the mock functions
+export const signUp = mockSignUp;
+export const signIn = mockSignIn;
+export const signOut = mockSignOut;
+export const getCurrentUser = mockGetCurrentUser;
+export const updateProfile = mockUpdateProfile;
 
-  // Sign out
-  signOut: async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
-  },
-
-  // Get current user
-  getCurrentUser: async (): Promise<AuthUser | null> => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) return null
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    return {
-      id: user.id,
-      email: user.email!,
-      profile: profile || undefined
-    }
-  },
-
-  // Get user session
-  getSession: async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session
-  },
-
-  // Listen to auth changes
-  onAuthStateChange: (callback: (event: string, session: any) => void) => {
-    return supabase.auth.onAuthStateChange(callback)
-  },
-
-  // Update user profile
-  updateProfile: async (userId: string, updates: Partial<Profile>) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single()
-    
-    return { data, error }
-  },
-
-  // Check if user has specific role
-  hasRole: async (userId: string, role: 'founder' | 'investor' | 'admin') => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_type')
-      .eq('id', userId)
-      .single()
-    
-    return data?.user_type === role
+// Function to fully sign out and clear storage
+export async function clearAuth() {
+  await signOut();
+  if (typeof window !== 'undefined') {
+    localStorage.clear();
   }
 }
+
+export type { Profile };
 
 // Auth context helpers
 export const useAuthRequired = () => {

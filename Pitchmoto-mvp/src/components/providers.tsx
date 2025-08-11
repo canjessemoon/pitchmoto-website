@@ -1,8 +1,7 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { auth, AuthUser } from '@/lib/auth'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { AuthUser, getCurrentUser, signOut } from '@/lib/auth'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -29,35 +28,63 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session using mock auth
     const getInitialSession = async () => {
-      const currentUser = await auth.getCurrentUser()
-      setUser(currentUser)
-      setLoading(false)
+      try {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+      } catch (error) {
+        console.log('No current user found')
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getInitialSession()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const currentUser = await auth.getCurrentUser()
-          setUser(currentUser)
+    // Custom event listener for same-tab auth changes
+    const handleAuthChange = (e: CustomEvent) => {
+      if (e.detail?.user) {
+        setUser(e.detail.user)
+      } else {
+        setUser(null)
+      }
+    }
+
+    // Mock auth state change listener
+    // In a real app, this would listen to Supabase auth changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        if (e.newValue) {
+          const userData = JSON.parse(e.newValue)
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            profile: userData
+          })
         } else {
           setUser(null)
         }
-        setLoading(false)
       }
-    )
+    }
+
+    // Listen for changes in localStorage (mock auth state)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange)
+      window.addEventListener('authChange', handleAuthChange as EventListener)
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange)
+        window.removeEventListener('authChange', handleAuthChange as EventListener)
+      }
     }
   }, [])
 
   const handleSignOut = async () => {
-    await auth.signOut()
+    await signOut()
     setUser(null)
   }
 
