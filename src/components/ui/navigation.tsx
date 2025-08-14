@@ -49,7 +49,7 @@ export function Navigation() {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              href="/app/startups"
+              href="/discovery"
               className="text-gray-600 hover:text-blue-600 transition-colors"
             >
               Discover Startups

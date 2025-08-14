@@ -18,6 +18,7 @@ interface Pitch {
   pitch_type: string
   funding_ask: number | null
   startup_id: string
+  status: string
   created_at: string
   updated_at: string
   startup: {
@@ -219,15 +220,30 @@ export default function PitchesPage() {
     try {
       setPublishingId(pitch.id)
       
-      // TODO: Implement publish API call
-      console.log('Publishing pitch:', pitch.id)
+      const response = await fetch(`/api/pitches/${pitch.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'published'
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish pitch')
+      }
+
+      // Refresh the pitches list to show updated status
+      await fetchPitches()
       
-      // For now, just show an alert
-      alert('Publish functionality coming soon! This will make your pitch visible to investors.')
+      alert('Pitch published successfully! It is now visible to investors.')
       
     } catch (error) {
       console.error('Error publishing pitch:', error)
-      alert('Failed to publish pitch. Please try again.')
+      alert(error instanceof Error ? error.message : 'Failed to publish pitch. Please try again.')
     } finally {
       setPublishingId(null)
     }
@@ -390,8 +406,12 @@ export default function PitchesPage() {
                       )}
                     </div>
                     <div className="flex flex-col space-y-2 ml-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-200 text-blue-800">
-                        Draft
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        pitch.status === 'published' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {pitch.status === 'published' ? 'Published' : 'Draft'}
                       </span>
                     </div>
                   </div>
@@ -427,13 +447,17 @@ export default function PitchesPage() {
                       >
                         Edit
                       </button>
-                      <button 
-                        onClick={() => handlePublish(pitch)}
-                        disabled={publishingId === pitch.id}
-                        className="text-emerald-600 hover:text-emerald-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {publishingId === pitch.id ? 'Publishing...' : 'Publish'}
-                      </button>
+                      {pitch.status !== 'published' ? (
+                        <button 
+                          onClick={() => handlePublish(pitch)}
+                          disabled={publishingId === pitch.id}
+                          className="bg-orange-500 text-white px-3 py-1 rounded border-2 border-orange-600 font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {publishingId === pitch.id ? 'Publishing...' : 'Publish'}
+                        </button>
+                      ) : (
+                        <span className="text-green-600 font-medium">✓ Published</span>
+                      )}
                     </div>
                   </div>
                 </div>

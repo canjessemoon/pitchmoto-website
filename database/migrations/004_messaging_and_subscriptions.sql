@@ -1,26 +1,26 @@
 -- Migration: Add messaging and subscription tables
 -- Created: 2025-08-10
 
+-- Threads table for organizing conversations (create first)
+CREATE TABLE IF NOT EXISTS threads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  participants UUID[] NOT NULL,
+  last_message_id UUID,
+  last_activity TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Messages table for direct messaging between users
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  thread_id UUID NOT NULL,
+  thread_id UUID NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   recipient_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   message_type VARCHAR(20) DEFAULT 'text' CHECK (message_type IN ('text', 'file', 'image')),
   attachments JSONB DEFAULT '[]'::jsonb,
   read_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Threads table for organizing conversations
-CREATE TABLE IF NOT EXISTS threads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  participants UUID[] NOT NULL,
-  last_message_id UUID,
-  last_activity TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
