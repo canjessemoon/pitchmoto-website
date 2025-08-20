@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { headers } from 'next/headers'
 
-// Create supabase client with service role (bypasses RLS)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+// Function to create supabase admin client with build-time protection
+function createSupabaseAdmin() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return null
   }
-)
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
+}
 
 // Function to get user from session
 async function getUserFromSession(request: NextRequest) {
@@ -23,10 +29,15 @@ async function getUserFromSession(request: NextRequest) {
       return null
     }
 
+    // Check if environment variables are available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return null
+    }
+
     // Create a supabase client for user session verification
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     )
 
     // Try to get user from the session token
@@ -46,6 +57,13 @@ async function getUserFromSession(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = createSupabaseAdmin()
+    
+    // Handle build-time when environment variables are not available
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    }
+    
     // For now, we'll get the user_id from query params
     // In a production app, you'd get this from the authenticated session
     const { searchParams } = new URL(request.url)
@@ -82,7 +100,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const startupIds = startups.map(s => s.id)
+    const startupIds = startups.map((s: any) => s.id)
 
     // Get pitches for the user's startups
     const { data: pitches, error } = await supabaseAdmin
@@ -124,6 +142,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = createSupabaseAdmin()
+    
+    // Handle build-time when environment variables are not available
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    }
+    
     const body = await request.json()
     console.log('API: Creating pitch with data:', body)
 
