@@ -20,18 +20,9 @@ const PaymentForm = forwardRef<PaymentFormRef, PaymentFormProps>(({
   loading = false,
   className = ""
 }, ref) => {
-  let stripe, elements
-  
-  try {
-    stripe = useStripe()
-    elements = useElements()
-  } catch (error) {
-    // Handle case where Stripe Elements context is not available
-    console.log('Stripe Elements context not available, using development mode')
-    stripe = null
-    elements = null
-  }
-  
+  // Always call hooks at the top level
+  const stripe = useStripe()
+  const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)
 
   const createPaymentMethod = async (): Promise<string | null> => {
