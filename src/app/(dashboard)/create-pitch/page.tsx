@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers'
 import { storageHelpers } from '@/lib/storage-helpers'
@@ -54,16 +54,11 @@ export default function CreatePitchPage() {
     rulesAccepted: false
   })
 
-  // Load user's startups on component mount
-  useEffect(() => {
-    if (user?.profile && user.profile.user_type === 'founder') {
-      loadUserStartups()
-    }
-  }, [user])
-
-  const loadUserStartups = async () => {
+  const loadUserStartups = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
-      const response = await fetch(`/api/startups/my-startups?founder_id=${user!.id}`)
+      const response = await fetch(`/api/startups/my-startups?founder_id=${user.id}`)
       if (response.ok) {
         const data = await response.json()
         setStartups(data.startups || [])
@@ -75,7 +70,14 @@ export default function CreatePitchPage() {
     } finally {
       setLoadingStartups(false)
     }
-  }
+  }, [user])
+
+  // Load user's startups on component mount
+  useEffect(() => {
+    if (user?.profile && user.profile.user_type === 'founder') {
+      loadUserStartups()
+    }
+  }, [user, loadUserStartups])
 
   // Redirect if not a founder
   React.useEffect(() => {
@@ -124,7 +126,13 @@ export default function CreatePitchPage() {
 
     try {
       console.log('Starting pitch creation process...')
-      console.log('User ID:', user!.id)
+      
+      if (!user?.id) {
+        setSubmitError('User ID not found. Please try signing in again.')
+        return
+      }
+      
+      console.log('User ID:', user.id)
       console.log('Form data:', formData)
 
       // Validate the form data

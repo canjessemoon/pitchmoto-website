@@ -2,8 +2,8 @@
 
 import { useAuth } from '@/components/providers'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
 
 interface Startup {
   id: string
@@ -22,13 +22,43 @@ interface Pitch {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardContent() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [showSavedSuccess, setShowSavedSuccess] = useState(false)
   const [startups, setStartups] = useState<Startup[]>([])
   const [pitches, setPitches] = useState<Pitch[]>([])
-  const [loadingData, setLoadingData] = useState(true)
+  // Remove unused loadingData state
+  // const [loadingData, setLoadingData] = useState(true)
+
+  const fetchUserData = useCallback(async () => {
+    if (!user?.id) return
+    
+    try {
+      // Fetch startups
+      const startupsResponse = await fetch(`/api/startups?user_id=${user.id}`)
+      if (startupsResponse.ok) {
+        const startupsData = await startupsResponse.json()
+        setStartups(startupsData.startups || [])
+      }
+
+      // Fetch pitches
+      const pitchesResponse = await fetch(`/api/pitches?user_id=${user.id}`)
+      if (pitchesResponse.ok) {
+        const pitchesData = await pitchesResponse.json()
+        setPitches(pitchesData.pitches || [])
+      }
+    } catch (error) {
+      // Handle error silently for production
+    }
+  }, [user?.id])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,34 +66,15 @@ export default function DashboardPage() {
     } else if (user && user.profile?.user_type === 'founder') {
       fetchUserData()
     }
-  }, [user, loading, router])
+  }, [user, loading, router, fetchUserData])
 
-  const fetchUserData = async () => {
-    try {
-      setLoadingData(true)
-      
-      // Fetch startups
-      const startupsResponse = await fetch(`/api/startups?user_id=${user?.id}`)
-      if (startupsResponse.ok) {
-        const startupsData = await startupsResponse.json()
-        setStartups(startupsData.startups || [])
-      }
-
-      // Fetch pitches
-      const pitchesResponse = await fetch(`/api/pitches?user_id=${user?.id}`)
-      if (pitchesResponse.ok) {
-        const pitchesData = await pitchesResponse.json()
-        setPitches(pitchesData.pitches || [])
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-    } finally {
-      setLoadingData(false)
-    }
-  }
-
+  // Handle saved parameter client-side only
   useEffect(() => {
-    const saved = searchParams.get('saved')
+    // Only run on client side
+    if (typeof window === 'undefined') return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    const saved = urlParams.get('saved')
     
     if (saved === 'true') {
       setShowSavedSuccess(true)
@@ -77,7 +88,7 @@ export default function DashboardPage() {
         setShowSavedSuccess(false)
       }, 5000)
     }
-  }, [searchParams, router])
+  }, [router])
 
   if (loading) {
     return (

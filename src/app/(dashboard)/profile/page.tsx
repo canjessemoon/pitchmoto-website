@@ -73,6 +73,11 @@ export default function ProfilePage() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user?.id) {
+      setProfileMessage('User not found. Please try signing in again.')
+      return
+    }
+    
     setProfileLoading(true)
     setProfileMessage('')
 
@@ -88,7 +93,7 @@ export default function ProfilePage() {
           website: profileData.website,
           linkedin_url: profileData.linkedin_url
         })
-        .eq('id', user!.id)
+        .eq('id', user.id)
 
       if (updateError) {
         throw new Error(`Update failed: ${updateError.message}`)

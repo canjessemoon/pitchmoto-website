@@ -112,9 +112,13 @@ export default function CreateStartupPage() {
 
     try {
       console.log('Starting startup creation process...')
-      console.log('User ID:', user!.id)
-      console.log('Form data:', formData)
-
+      
+      if (!user?.id) {
+        setSubmitError('User ID not found. Please try signing in again.')
+        return
+      }
+      
+      console.log('User ID:', user.id)
       // Validate the form data
       const validationResult = startupSchema.safeParse({
         name: formData.name,
@@ -141,7 +145,7 @@ export default function CreateStartupPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          founder_id: user!.id,
+          founder_id: user.id,
           name: formData.name,
           tagline: formData.tagline,
           description: formData.description,
