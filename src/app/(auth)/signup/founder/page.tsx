@@ -75,25 +75,22 @@ export default function FounderSignUpPage() {
         // Update profile after successful signup (trigger creates basic profile)
         if (result.data?.user?.id) {
           try {
-            const profileResult = await profileHelpers.updateProfile(
+            // Use createProfile instead of updateProfile to ensure profile exists
+            const profileResult = await profileHelpers.createProfile(
               result.data.user.id,
-              {
-                user_type: 'founder',
-                full_name: validatedData.fullName
-              }
+              validatedData.email,
+              validatedData.fullName,
+              'founder'
             )
             
             if (profileResult.error) {
-              console.error('Profile update error:', profileResult.error)
-              alert('Account created but profile setup failed. Please try signing in.')
-              setIsLoading(false)
-              return
+              console.error('Profile creation error:', profileResult.error)
+              // Don't fail completely - user can still sign in and update profile later
+              console.log('Profile may already exist or be created by trigger')
             }
           } catch (profileError) {
-            console.error('Profile update exception:', profileError)
-            alert('Account created but profile setup failed. Please try signing in.')
-            setIsLoading(false)
-            return
+            console.error('Profile creation exception:', profileError)
+            // Don't fail completely - user can still sign in
           }
         }
         

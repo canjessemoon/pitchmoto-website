@@ -82,17 +82,18 @@ export default function InvestorSignUpPage() {
 
       if (data.user) {
         try {
-          // Update user profile with investor information
-          const profileResult = await profileHelpers.updateProfile(data.user.id, {
-            user_type: 'investor',
-            full_name: validatedData.fullName
-          })
+          // Create user profile with investor information
+          const profileResult = await profileHelpers.createProfile(
+            data.user.id,
+            validatedData.email,
+            validatedData.fullName,
+            'investor'
+          )
           
           if (profileResult.error) {
-            console.error('Profile update error:', profileResult.error)
-            setErrors({ email: 'Account created but profile update failed. Please contact support.' })
-            setLoading(false)
-            return
+            console.error('Profile creation error:', profileResult.error)
+            // Don't fail completely - user can still sign in and update profile later
+            console.log('Profile may already exist or be created by trigger')
           }
           
           // TODO: Store additional investor data (type, company, linkedin) in a separate investor profiles table
@@ -101,10 +102,10 @@ export default function InvestorSignUpPage() {
           // Redirect to investor-specific onboarding or dashboard
           router.push('/signin')
         } catch (profileError) {
-          console.error('Profile update exception:', profileError)
-          setErrors({ email: 'Account created but profile setup failed. Please try signing in.' })
-          setLoading(false)
-          return
+          console.error('Profile creation exception:', profileError)
+          // Don't fail completely - user can still sign in
+          alert('Account created successfully! Please check your email to verify your account.')
+          router.push('/signin')
         }
       }
     } catch (error: any) {

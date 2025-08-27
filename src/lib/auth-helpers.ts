@@ -118,7 +118,7 @@ export const profileHelpers = {
   createProfile: async (userId: string, email: string, fullName?: string, userType: 'founder' | 'investor' = 'founder') => {
     const { data, error } = await supabase
       .from('profiles')
-      .insert({
+      .upsert({
         id: userId,
         email,
         full_name: fullName,
