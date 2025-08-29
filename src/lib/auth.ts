@@ -80,8 +80,6 @@ export const auth = {
       
       if (sessionError) {
         console.warn('Session error:', sessionError.message)
-        // Clear the session if there's an error
-        await supabase.auth.signOut()
         return null
       }
       
@@ -92,12 +90,21 @@ export const auth = {
       // Get user from session
       const user = session.user
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
+      // Get user profile with timeout
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      )
+
+      const { data: profile, error: profileError } = await Promise.race([
+        profilePromise,
+        timeoutPromise
+      ]) as any
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError)

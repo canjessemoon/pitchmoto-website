@@ -29,33 +29,26 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('AuthProvider useEffect starting...') // Debug log
-    
     // Set a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
-      console.log('Auth loading timeout - forcing loading to false')
       setLoading(false)
-    }, 3000) // 3 second timeout
+    }, 5000) // 5 second timeout
     
     // Get initial session
     const getInitialSession = async () => {
       try {
-        console.log('Getting initial session...') // Debug log
         const currentUser = await auth.getCurrentUser()
-        console.log('Got current user:', currentUser) // Debug log
         setUser(currentUser)
         setLoading(false)
         clearTimeout(timeout)
-        console.log('Set loading to false') // Debug log
       } catch (error) {
         console.error('Error getting initial session:', error)
-        // Clear any corrupted session data or refresh token errors
+        // Clear any corrupted session data
         if (error instanceof Error && (
           error.message.includes('session') || 
           error.message.includes('refresh') ||
           error.message.includes('Invalid Refresh Token')
         )) {
-          console.log('Clearing corrupted session...')
           await auth.clearSession()
         }
         setUser(null)
@@ -69,46 +62,21 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session) // Debug log
-        
         try {
-          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-            // Handle sign out or token refresh
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
               const currentUser = await auth.getCurrentUser()
               setUser(currentUser)
             } else {
               setUser(null)
             }
-          } else if (event === 'SIGNED_IN') {
-            // Handle sign in
-            if (session?.user) {
-              const currentUser = await auth.getCurrentUser()
-              setUser(currentUser)
-            }
-          } else if (event === 'USER_UPDATED') {
-            // Handle user update
-            if (session?.user) {
-              const currentUser = await auth.getCurrentUser()
-              setUser(currentUser)
-            }
           }
         } catch (error) {
           console.error('Error handling auth state change:', error)
-          // If there's a refresh token error, clear the session
-          if (error instanceof Error && (
-            error.message.includes('refresh') ||
-            error.message.includes('Invalid Refresh Token')
-          )) {
-            console.log('Clearing session due to refresh token error...')
-            await auth.clearSession()
-          }
-          // If there's an error, assume user is signed out
           setUser(null)
         }
-        
-        setLoading(false)
-        clearTimeout(timeout)
       }
     )
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authHelpers, profileHelpers } from '@/lib/auth-helpers'
@@ -14,6 +14,22 @@ export default function SignInPage() {
   })
   const [errors, setErrors] = useState<Partial<SignInData>>({})
   const [loading, setLoading] = useState(false)
+  const [isLocalhost, setIsLocalhost] = useState(false)
+
+  // Check if we're on localhost
+  useEffect(() => {
+    setIsLocalhost(typeof window !== 'undefined' && window.location.hostname === 'localhost')
+  }, [])
+
+  const clearLocalStorage = () => {
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Clearing all localStorage and sessionStorage...')
+      localStorage.clear()
+      sessionStorage.clear()
+      alert('Cache cleared! Please try signing in again.')
+      window.location.reload()
+    }
+  }
 
   const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
     try {
@@ -44,8 +60,27 @@ export default function SignInPage() {
       // Validate form data
       const validatedData = signInSchema.parse(formData)
 
-      // Sign in user
-      const { data, error } = await authHelpers.signInWithEmail(validatedData.email, validatedData.password)
+      // Check if we're on localhost and log additional debug info
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      if (isLocalhost) {
+        console.log('🏠 Running on localhost - checking for potential issues...')
+        console.log('📊 localStorage keys:', Object.keys(localStorage))
+        console.log('🔐 Auth environment:', {
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
+          hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        })
+      }
+
+      // Sign in user with timeout protection
+      console.log('Starting sign in process...')
+      const signInPromise = authHelpers.signInWithEmail(validatedData.email, validatedData.password)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in timeout')), isLocalhost ? 15000 : 8000) // Longer timeout for localhost
+      )
+      
+      console.log('Waiting for sign in response...')
+      const { data, error } = await Promise.race([signInPromise, timeoutPromise]) as any
+      console.log('Sign in response received:', { data: data?.user?.id, error: error?.message })
 
       if (error) {
         setErrors({ email: error.message })
@@ -53,46 +88,30 @@ export default function SignInPage() {
       }
 
       if (data.user) {
-        // Get user profile to determine their role
-        try {
-          console.log('Fetching profile for user:', data.user.id) // Debug log
-          const { data: profile, error: profileError } = await profileHelpers.getProfile(data.user.id)
-          
-          console.log('Profile data:', profile) // Debug log
-          console.log('Profile error:', profileError) // Debug log
-          
-          if (profileError) {
-            console.error('Error fetching profile:', profileError)
-            router.push('/dashboard') // Fallback to default dashboard
-            return
-          }
-          
-          console.log('User type from profile:', profile?.user_type) // Debug log
-          
-          // Route based on user type
-          if (profile?.user_type === 'investor') {
-            console.log('Routing investor to /app/startups') // Debug log
-            router.push('/app/startups') // Investor sees startup discovery
-          } else if (profile?.user_type === 'founder') {
-            console.log('Routing founder to /dashboard') // Debug log
-            router.push('/dashboard') // Founder sees their dashboard
-          } else {
-            console.log('No valid user_type, defaulting to /dashboard') // Debug log
-            router.push('/dashboard') // Default fallback
-          }
-        } catch (error) {
-          console.error('Profile lookup error:', error)
-          router.push('/dashboard') // Fallback to default dashboard
+        // Simply redirect to dashboard - let dashboard handle role-based routing
+        // This prevents hanging issues during sign-in
+        console.log('Sign in successful, redirecting to dashboard')
+        
+        // On localhost, add a small delay to ensure state is properly set
+        if (isLocalhost) {
+          console.log('🏠 Localhost detected - adding state stabilization delay...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
         }
+        
+        router.push('/dashboard')
       }
     } catch (error: any) {
-      if (error.errors) {
+      if (error.message === 'Sign in timeout') {
+        console.error('⏰ Sign in timed out')
+        setErrors({ email: 'Sign in is taking longer than expected. This may be a localhost issue. Try refreshing the page or clearing browser cache.' })
+      } else if (error.errors) {
         const fieldErrors: Partial<SignInData> = {}
         error.errors.forEach((err: any) => {
           fieldErrors[err.path[0] as keyof SignInData] = err.message
         })
         setErrors(fieldErrors)
       } else {
+        console.error('🚨 Unexpected sign in error:', error)
         setErrors({ email: 'An unexpected error occurred' })
       }
     } finally {
@@ -219,15 +238,36 @@ export default function SignInPage() {
                 Forgot your password?
               </a>
             </div>
+            {isLocalhost && (
+              <div className="text-sm">
+                <button
+                  type="button"
+                  onClick={clearLocalStorage}
+                  className="font-medium text-red-600 hover:text-red-500"
+                >
+                  🧹 Clear Cache
+                </button>
+              </div>
+            )}
           </div>
 
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign in'
+              )}
             </button>
           </div>
         </form>

@@ -60,6 +60,18 @@ function DashboardContent() {
     }
   }, [user?.id])
 
+  // Refresh data when dashboard is focused
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.profile?.user_type === 'founder') {
+        fetchUserData()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user, fetchUserData])
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/signin')
@@ -119,6 +131,13 @@ function DashboardContent() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={fetchUserData}
+                className="text-gray-500 hover:text-gray-700 px-2 py-1 text-sm"
+                title="Refresh data"
+              >
+                ↻ Refresh
+              </button>
               <span className="text-gray-700">
                 Welcome, {user.profile?.full_name || user.email}
               </span>
