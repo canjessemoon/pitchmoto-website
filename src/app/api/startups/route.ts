@@ -13,6 +13,58 @@ function createSupabaseAdmin() {
   )
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const supabaseAdmin = createSupabaseAdmin()
+    
+    // Handle build-time when environment variables are not available
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    }
+    
+    const { searchParams } = new URL(request.url)
+    const user_id = searchParams.get('user_id')
+    
+    if (!user_id) {
+      return NextResponse.json(
+        { error: 'user_id parameter is required' },
+        { status: 400 }
+      )
+    }
+
+    console.log('API route: Fetching startups for user:', user_id)
+
+    // Fetch startups for the user
+    const { data: startups, error } = await supabaseAdmin
+      .from('startups')
+      .select('*')
+      .eq('founder_id', user_id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('API route: Database error:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+
+    console.log('API route: Fetched', startups?.length || 0, 'startups')
+
+    return NextResponse.json({ 
+      success: true, 
+      startups: startups || []
+    })
+
+  } catch (error: any) {
+    console.error('API route: Unexpected error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseAdmin = createSupabaseAdmin()

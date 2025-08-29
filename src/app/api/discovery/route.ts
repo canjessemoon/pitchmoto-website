@@ -1,9 +1,28 @@
 import { createServerClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Function to create supabase admin client with build-time protection
+function createSupabaseAdmin() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return null
+  }
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = createSupabaseAdmin()
+    
+    if (!supabase) {
+      console.error('Supabase admin client is null - environment variables missing')
+      return NextResponse.json({ error: 'Database configuration error' }, { status: 500 })
+    }
+    
     const { searchParams } = new URL(request.url)
     
     // Get query parameters
@@ -23,39 +42,33 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         title,
-        tagline,
-        sector,
-        location,
-        stage,
-        funding_ask,
+        content,
         upvote_count,
         created_at,
         updated_at,
         startups:startup_id (
           id,
           name,
-          logo_url,
-          country
+          logo_url
         )
       `)
-      .eq('status', 'published') // Only show published pitches
       .range(offset, offset + limit - 1)
 
     // Apply filters
     if (search) {
-      query = query.or(`title.ilike.%${search}%,tagline.ilike.%${search}%`)
+      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
     }
     
     if (sector) {
-      query = query.eq('sector', sector)
+      // query = query.eq('sector', sector) // Disabled until sector column exists
     }
     
     if (location) {
-      query = query.ilike('location', `%${location}%`)
+      // query = query.ilike('location', `%${location}%`) // Disabled until location column exists
     }
     
     if (stage) {
-      query = query.eq('stage', stage)
+      // query = query.eq('stage', stage) // Disabled until stage column exists
     }
 
     // Apply country filter via startup relationship
@@ -78,36 +91,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch pitches' }, { status: 500 })
     }
 
-    // Filter by country in post-processing if needed
+    // Filter by country in post-processing if needed (disabled until country column exists)
     let filteredPitches = pitches || []
+    /*
     if (country) {
-      filteredPitches = filteredPitches.filter(pitch => {
+      filteredPitches = filteredPitches.filter((pitch: any) => {
         const startup = pitch.startups as any
         return startup?.country?.toLowerCase().includes(country.toLowerCase())
       })
     }
+    */
 
     // Get total count for pagination
     let countQuery = supabase
       .from('pitches')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'published')
 
     // Apply same filters for count
     if (search) {
-      countQuery = countQuery.or(`title.ilike.%${search}%,tagline.ilike.%${search}%`)
+      countQuery = countQuery.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
     }
     
     if (sector) {
-      countQuery = countQuery.eq('sector', sector)
+      // countQuery = countQuery.eq('sector', sector) // Disabled until sector column exists
     }
     
     if (location) {
-      countQuery = countQuery.ilike('location', `%${location}%`)
+      // countQuery = countQuery.ilike('location', `%${location}%`) // Disabled until location column exists
     }
     
     if (stage) {
-      countQuery = countQuery.eq('stage', stage)
+      // countQuery = countQuery.eq('stage', stage) // Disabled until stage column exists
     }
 
     const { count, error: countError } = await countQuery

@@ -15,8 +15,13 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 // For server-side operations
 export const createServerClient = () => {
+  // Log environment variables for debugging
+  console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')
+  console.log('SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set')
+  
   // Return null during build time if environment variables are not available
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Supabase environment variables not set')
     return null as any
   }
   
