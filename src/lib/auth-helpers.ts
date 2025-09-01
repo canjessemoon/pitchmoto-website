@@ -10,14 +10,16 @@ export const authHelpers = {
     return { data, error }
   },
 
-  signUpWithEmail: async (email: string, password: string, fullName?: string) => {
+  signUpWithEmail: async (email: string, password: string, fullName?: string, userType: 'founder' | 'investor' = 'founder') => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName
-        }
+          full_name: fullName,
+          user_type: userType
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     })
     return { data, error }
@@ -73,6 +75,18 @@ export const authHelpers = {
   resetPassword: async (email: string) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`
+    })
+    return { data, error }
+  },
+
+  // Resend Email Confirmation
+  resendConfirmation: async (email: string) => {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
     })
     return { data, error }
   },

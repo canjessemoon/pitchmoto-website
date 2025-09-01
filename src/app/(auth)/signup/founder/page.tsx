@@ -59,46 +59,43 @@ export default function FounderSignUpPage() {
 
       const validatedData = signUpSchema.parse(formData)
       
-      const result = await authHelpers.signUpWithEmail(
+      // Add timeout to prevent hanging
+      const signupPromise = authHelpers.signUpWithEmail(
         validatedData.email,
         validatedData.password,
-        validatedData.fullName
+        validatedData.fullName,
+        'founder'
       )
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Signup timeout')), 30000) // Increased to 30 seconds
+      )
+      
+      const result = await Promise.race([signupPromise, timeoutPromise]) as any
 
       if (result.error) {
+        console.error('Signup error details:', result.error)
         if (result.error.message.includes('already registered')) {
-          setErrors({ email: 'This email is already registered' })
+          setErrors({ email: 'This email is already registered. Please sign in instead.' })
+        } else if (result.error.message.includes('Password should be at least')) {
+          setErrors({ password: 'Password must be at least 6 characters long.' })
+        } else if (result.error.message.includes('Unable to validate email')) {
+          setErrors({ email: 'Please enter a valid email address.' })
         } else {
-          alert(result.error.message)
+          setErrors({ email: result.error.message })
         }
       } else {
-        // Update profile after successful signup (trigger creates basic profile)
-        if (result.data?.user?.id) {
-          try {
-            // Use createProfile instead of updateProfile to ensure profile exists
-            const profileResult = await profileHelpers.createProfile(
-              result.data.user.id,
-              validatedData.email,
-              validatedData.fullName,
-              'founder'
-            )
-            
-            if (profileResult.error) {
-              console.error('Profile creation error:', profileResult.error)
-              // Don't fail completely - user can still sign in and update profile later
-              console.log('Profile may already exist or be created by trigger')
-            }
-          } catch (profileError) {
-            console.error('Profile creation exception:', profileError)
-            // Don't fail completely - user can still sign in
-          }
-        }
-        
-        alert('Account created successfully! Please check your email to verify your account.')
+        // Signup successful
+        console.log('Signup successful:', result.data?.user?.id)
+        alert('Account created successfully! Please check your email to verify your account before signing in.')
         router.push('/signin')
       }
     } catch (error: any) {
-      if (error.errors) {
+      if (error.message === 'Signup timeout') {
+        // Even if it times out, the signup might have worked
+        alert('Account creation is taking longer than expected. Please check your email for a verification link, or try signing in.')
+        router.push('/signin')
+      } else if (error.errors) {
         const fieldErrors: Partial<SignUpData> = {}
         error.errors.forEach((err: any) => {
           if (err.path[0]) {

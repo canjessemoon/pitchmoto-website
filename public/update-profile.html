@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Profile</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Update Your Investor Profile</h1>
+    <p>Let's add the missing information from your original signup:</p>
+    
+    <form onsubmit="updateProfile(event)">
+        <div class="form-group">
+            <label>Email (read-only):</label>
+            <input type="email" value="jdmoon+richard@gmail.com" readonly style="background: #f8f9fa;">
+        </div>
+        
+        <div class="form-group">
+            <label>Company:</label>
+            <input type="text" id="company" placeholder="Enter your company name">
+        </div>
+        
+        <div class="form-group">
+            <label>LinkedIn URL:</label>
+            <input type="url" id="linkedinUrl" placeholder="https://linkedin.com/in/yourprofile">
+        </div>
+        
+        <div class="form-group">
+            <label>Bio:</label>
+            <textarea id="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Location:</label>
+            <input type="text" id="location" placeholder="City, Country">
+        </div>
+        
+        <div class="form-group">
+            <label>Website:</label>
+            <input type="url" id="website" placeholder="https://yourwebsite.com">
+        </div>
+        
+        <button type="submit">Update Profile</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        async function updateProfile(event) {
+            event.preventDefault();
+            
+            const updates = {};
+            
+            // Collect form data
+            const company = document.getElementById('company').value.trim();
+            const linkedinUrl = document.getElementById('linkedinUrl').value.trim();
+            const bio = document.getElementById('bio').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const website = document.getElementById('website').value.trim();
+            
+            if (company) updates.company = company;
+            if (linkedinUrl) updates.linkedin_url = linkedinUrl;
+            if (bio) updates.bio = bio;
+            if (location) updates.location = location;
+            if (website) updates.website = website;
+            
+            if (Object.keys(updates).length === 0) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">
+                        <strong>No updates provided</strong><br>
+                        Please fill in at least one field to update.
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/update-profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'jdmoon+richard@gmail.com',
+                        updates: updates
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result success">
+                            <strong>Profile updated successfully!</strong><br>
+                            Updated fields: ${Object.keys(updates).join(', ')}<br>
+                            <details style="margin-top: 10px;">
+                                <summary>View updated profile</summary>
+                                <pre style="margin-top: 10px; font-size: 12px;">${JSON.stringify(result.profile, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result error">
+                            <strong>Update failed:</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -343,7 +343,7 @@ function DashboardContent() {
                       <h3 className="text-lg font-semibold mb-2">View Discovery</h3>
                       <p className="text-gray-600 mb-4 text-sm">See how investors discover startups.</p>
                       <Link 
-                        href="/discovery"
+                        href="/pitches"
                         className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                       >
                         Browse Pitches →
@@ -378,7 +378,7 @@ function DashboardContent() {
                       <h3 className="text-lg font-semibold mb-2">Browse Pitches</h3>
                       <p className="text-gray-600 mb-4">Discover innovative startups and their pitches.</p>
                       <Link 
-                        href="/browse"
+                        href="/pitches"
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-indigo-500"
                       >
                         Start Browsing

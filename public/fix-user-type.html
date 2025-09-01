@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix User Type</title>
+</head>
+<body>
+    <h1>Fix User Type</h1>
+    <button onclick="fixUserType()">Fix jdmoon+richard@gmail.com to Investor</button>
+    <div id="result"></div>
+
+    <script>
+        async function fixUserType() {
+            try {
+                const response = await fetch('/api/fix-user-type', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'jdmoon+richard@gmail.com',
+                        userType: 'investor'
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Result:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

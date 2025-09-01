@@ -78,28 +78,84 @@ export default function ProfilePage() {
       return
     }
     
+    console.log('Starting profile update...')
+    console.log('User ID:', user.id)
+    console.log('Profile data to update:', profileData)
+    
     setProfileLoading(true)
     setProfileMessage('')
 
     try {
-      const { error: updateError } = await supabase
+      // First, let's check current session
+      const { data: session, error: sessionError } = await supabase.auth.getSession()
+      console.log('Current session:', session?.session?.user?.id)
+      console.log('Session error:', sessionError)
+      
+      if (sessionError) {
+        throw new Error(`Session error: ${sessionError.message}`)
+      }
+      
+      if (!session?.session) {
+        throw new Error('No active session found')
+      }
+
+      console.log('Attempting profile update...')
+      
+      // Create update object with only the fields that have values
+      const updateData: any = {}
+      
+      if (profileData.full_name !== undefined) {
+        updateData.full_name = profileData.full_name
+        console.log('Adding full_name:', profileData.full_name)
+      }
+      
+      if (profileData.user_type !== undefined) {
+        updateData.user_type = profileData.user_type
+        console.log('Adding user_type:', profileData.user_type)
+      }
+      
+      if (profileData.bio !== undefined && profileData.bio !== '') {
+        updateData.bio = profileData.bio
+        console.log('Adding bio:', profileData.bio)
+      }
+      
+      if (profileData.company !== undefined && profileData.company !== '') {
+        updateData.company = profileData.company
+        console.log('Adding company:', profileData.company)
+      }
+      
+      if (profileData.location !== undefined && profileData.location !== '') {
+        updateData.location = profileData.location
+        console.log('Adding location:', profileData.location)
+      }
+      
+      if (profileData.website !== undefined && profileData.website !== '') {
+        updateData.website = profileData.website
+        console.log('Adding website:', profileData.website)
+      }
+      
+      if (profileData.linkedin_url !== undefined && profileData.linkedin_url !== '') {
+        updateData.linkedin_url = profileData.linkedin_url
+        console.log('Adding linkedin_url:', profileData.linkedin_url)
+      }
+      
+      console.log('Final update object:', updateData)
+      
+      const { data: updateResponseData, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          full_name: profileData.full_name,
-          user_type: profileData.user_type,
-          bio: profileData.bio,
-          company: profileData.company,
-          location: profileData.location,
-          website: profileData.website,
-          linkedin_url: profileData.linkedin_url
-        })
+        .update(updateData)
         .eq('id', user.id)
+        .select()
+
+      console.log('Update response data:', updateResponseData)
+      console.log('Update error:', updateError)
 
       if (updateError) {
-        throw new Error(`Update failed: ${updateError.message}`)
+        throw new Error(`Update failed: ${updateError.message} (Code: ${updateError.code})`)
       }
 
       setProfileMessage('Profile updated successfully!')
+      console.log('Profile update successful!')
     } catch (error: any) {
       console.error('Error updating profile:', error)
       setProfileMessage(`Error updating profile: ${error.message || 'Please try again.'}`)

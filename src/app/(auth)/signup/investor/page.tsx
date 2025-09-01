@@ -67,12 +67,19 @@ export default function InvestorSignUpPage() {
         userType: formData.userType
       })
 
-      // Sign up user
-      const { data, error } = await authHelpers.signUpWithEmail(
+      // Sign up user with timeout protection
+      const signupPromise = authHelpers.signUpWithEmail(
         validatedData.email,
         validatedData.password,
-        validatedData.fullName
+        validatedData.fullName,
+        'investor'
       )
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Signup timeout')), 30000) // Increased to 30 seconds
+      )
+      
+      const { data, error } = await Promise.race([signupPromise, timeoutPromise]) as any
 
       if (error) {
         setErrors({ email: error.message })
@@ -81,35 +88,17 @@ export default function InvestorSignUpPage() {
       }
 
       if (data.user) {
-        try {
-          // Create user profile with investor information
-          const profileResult = await profileHelpers.createProfile(
-            data.user.id,
-            validatedData.email,
-            validatedData.fullName,
-            'investor'
-          )
-          
-          if (profileResult.error) {
-            console.error('Profile creation error:', profileResult.error)
-            // Don't fail completely - user can still sign in and update profile later
-            console.log('Profile may already exist or be created by trigger')
-          }
-          
-          // TODO: Store additional investor data (type, company, linkedin) in a separate investor profiles table
-          
-          alert('Investor account created successfully! Please check your email to verify your account.')
-          // Redirect to investor-specific onboarding or dashboard
-          router.push('/signin')
-        } catch (profileError) {
-          console.error('Profile creation exception:', profileError)
-          // Don't fail completely - user can still sign in
-          alert('Account created successfully! Please check your email to verify your account.')
-          router.push('/signin')
-        }
+        // Skip profile creation here - let the database trigger handle it
+        // This prevents the hanging issue
+        alert('Investor account created successfully! Please check your email to verify your account.')
+        router.push('/signin')
       }
     } catch (error: any) {
-      if (error.errors) {
+      if (error.message === 'Signup timeout') {
+        // Even if it times out, the signup might have worked
+        alert('Account creation is taking longer than expected. Please check your email for a verification link, or try signing in.')
+        router.push('/signin')
+      } else if (error.errors) {
         const fieldErrors: Partial<SignUpData> = {}
         error.errors.forEach((err: any) => {
           fieldErrors[err.path[0] as keyof SignUpData] = err.message

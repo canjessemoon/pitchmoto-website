@@ -171,8 +171,12 @@ export default function PitchesPage() {
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user && user.profile?.user_type === 'founder') {
-      fetchPitches()
+    if (user) {
+      if (user.profile?.user_type === 'founder') {
+        fetchPitches() // Fetch user's own pitches
+      } else if (user.profile?.user_type === 'investor') {
+        fetchAllPitches() // Fetch all published pitches for browsing
+      }
     }
   }, [user])
 
@@ -180,6 +184,31 @@ export default function PitchesPage() {
     try {
       setLoadingPitches(true)
       const response = await fetch(`/api/pitches?user_id=${user?.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pitches')
+      }
+
+      const data = await response.json()
+      setPitches(data.pitches || [])
+    } catch (error) {
+      console.error('Error fetching pitches:', error)
+      setError('Failed to load pitches')
+    } finally {
+      setLoadingPitches(false)
+    }
+  }
+
+  const fetchAllPitches = async () => {
+    try {
+      setLoadingPitches(true)
+      // Fetch all published pitches for investors to browse
+      const response = await fetch('/api/pitches', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -261,7 +290,7 @@ export default function PitchesPage() {
     return null
   }
 
-  if (user.profile?.user_type !== 'founder') {
+  if (user.profile?.user_type !== 'founder' && user.profile?.user_type !== 'investor') {
     return (
       <div className="min-h-screen bg-gray-50">
         <nav className="bg-white shadow">
@@ -287,7 +316,7 @@ export default function PitchesPage() {
           <div className="px-4 py-6 sm:px-0">
             <div className="text-center">
               <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Restricted</h1>
-              <p className="text-gray-600">This page is only available to founders.</p>
+              <p className="text-gray-600">This page is only available to founders and investors.</p>
             </div>
           </div>
         </main>
@@ -335,21 +364,34 @@ export default function PitchesPage() {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Manage & Publish Pitches</h1>
-            <p className="mt-2 text-gray-600">
-              View, edit, and publish your startup pitches
-            </p>
+            {user.profile?.user_type === 'founder' ? (
+              <>
+                <h1 className="text-3xl font-bold text-gray-900">Manage & Publish Pitches</h1>
+                <p className="mt-2 text-gray-600">
+                  View, edit, and publish your startup pitches
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold text-gray-900">Browse Startup Pitches</h1>
+                <p className="mt-2 text-gray-600">
+                  Discover innovative startups and their pitches
+                </p>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}
-          <div className="mb-6 flex space-x-4">
-            <Link
-              href="/create-pitch"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors"
-            >
-              Create New Pitch
-            </Link>
-          </div>
+          {user.profile?.user_type === 'founder' && (
+            <div className="mb-6 flex space-x-4">
+              <Link
+                href="/create-pitch"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-colors"
+              >
+                Create New Pitch
+              </Link>
+            </div>
+          )}
 
           {/* Pitches List */}
           {loadingPitches ? (
@@ -439,24 +481,44 @@ export default function PitchesPage() {
                         onClick={() => handlePreview(pitch)}
                         className="text-blue-600 hover:text-blue-800 font-medium"
                       >
-                        Preview
+                        {user.profile?.user_type === 'investor' ? 'View Details' : 'Preview'}
                       </button>
-                      <button 
-                        onClick={() => handleEdit(pitch)}
-                        className="text-indigo-600 hover:text-indigo-800 font-medium"
-                      >
-                        Edit
-                      </button>
-                      {pitch.status !== 'published' ? (
-                        <button 
-                          onClick={() => handlePublish(pitch)}
-                          disabled={publishingId === pitch.id}
-                          className="bg-orange-500 text-white px-3 py-1 rounded border-2 border-orange-600 font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {publishingId === pitch.id ? 'Publishing...' : 'Publish'}
-                        </button>
-                      ) : (
-                        <span className="text-green-600 font-medium">✓ Published</span>
+                      
+                      {user.profile?.user_type === 'founder' && (
+                        <>
+                          <button 
+                            onClick={() => handleEdit(pitch)}
+                            className="text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            Edit
+                          </button>
+                          {pitch.status !== 'published' ? (
+                            <button 
+                              onClick={() => handlePublish(pitch)}
+                              disabled={publishingId === pitch.id}
+                              className="bg-orange-500 text-white px-3 py-1 rounded border-2 border-orange-600 font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {publishingId === pitch.id ? 'Publishing...' : 'Publish'}
+                            </button>
+                          ) : (
+                            <span className="text-green-600 font-medium">✓ Published</span>
+                          )}
+                        </>
+                      )}
+                      
+                      {user.profile?.user_type === 'investor' && (
+                        <>
+                          <button 
+                            className="text-green-600 hover:text-green-800 font-medium"
+                          >
+                            ▲ Upvote
+                          </button>
+                          <button 
+                            className="text-purple-600 hover:text-purple-800 font-medium"
+                          >
+                            + Watchlist
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

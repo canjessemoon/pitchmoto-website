@@ -64,72 +64,99 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
     }
     
-    // For now, we'll get the user_id from query params
-    // In a production app, you'd get this from the authenticated session
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('user_id')
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID required' },
-        { status: 400 }
-      )
-    }
+    if (userId) {
+      // Founder view: Get pitches for specific user's startups
+      console.log('API: Fetching pitches for user:', userId)
 
-    console.log('API: Fetching pitches for user:', userId)
+      // First, get the user's startups
+      const { data: startups, error: startupsError } = await supabaseAdmin
+        .from('startups')
+        .select('id')
+        .eq('founder_id', userId)
 
-    // First, get the user's startups
-    const { data: startups, error: startupsError } = await supabaseAdmin
-      .from('startups')
-      .select('id')
-      .eq('founder_id', userId)
+      if (startupsError) {
+        console.error('Error fetching startups:', startupsError)
+        return NextResponse.json(
+          { error: 'Database error: ' + startupsError.message },
+          { status: 500 }
+        )
+      }
 
-    if (startupsError) {
-      console.error('Error fetching startups:', startupsError)
-      return NextResponse.json(
-        { error: 'Database error: ' + startupsError.message },
-        { status: 500 }
-      )
-    }
+      if (!startups || startups.length === 0) {
+        // User has no startups, return empty array
+        return NextResponse.json({ 
+          success: true, 
+          pitches: []
+        })
+      }
 
-    if (!startups || startups.length === 0) {
-      // User has no startups, return empty array
+      const startupIds = startups.map((s: any) => s.id)
+
+      // Get pitches for the user's startups
+      const { data: pitches, error } = await supabaseAdmin
+        .from('pitches')
+        .select(`
+          *,
+          startup:startups (
+            id,
+            name,
+            tagline
+          )
+        `)
+        .in('startup_id', startupIds)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Database error:', error)
+        return NextResponse.json(
+          { error: 'Database error: ' + error.message },
+          { status: 500 }
+        )
+      }
+
+      console.log('Fetched user pitches:', pitches)
+
       return NextResponse.json({ 
         success: true, 
-        pitches: []
+        pitches: pitches || []
+      })
+    } else {
+      // Investor view: Get all published pitches for browsing
+      console.log('API: Fetching all published pitches for browsing')
+
+      const { data: pitches, error } = await supabaseAdmin
+        .from('pitches')
+        .select(`
+          *,
+          startup:startups (
+            id,
+            name,
+            tagline,
+            logo_url,
+            country
+          )
+        `)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Database error:', error)
+        return NextResponse.json(
+          { error: 'Database error: ' + error.message },
+          { status: 500 }
+        )
+      }
+
+      console.log('Fetched all pitches:', pitches?.length || 0)
+
+      return NextResponse.json({ 
+        success: true, 
+        pitches: pitches || []
       })
     }
-
-    const startupIds = startups.map((s: any) => s.id)
-
-    // Get pitches for the user's startups
-    const { data: pitches, error } = await supabaseAdmin
-      .from('pitches')
-      .select(`
-        *,
-        startup:startups (
-          id,
-          name,
-          tagline
-        )
-      `)
-      .in('startup_id', startupIds)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json(
-        { error: 'Database error: ' + error.message },
-        { status: 500 }
-      )
-    }
-
-    console.log('Fetched pitches:', pitches)
-
-    return NextResponse.json({ 
-      success: true, 
-      pitches: pitches || []
-    })
 
   } catch (error: any) {
     console.error('API error:', error)

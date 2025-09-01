@@ -2,24 +2,40 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { authHelpers, profileHelpers } from '@/lib/auth-helpers'
 import { signInSchema, type SignInData } from '@/lib/validations'
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState<SignInData>({
     email: '',
     password: ''
   })
   const [errors, setErrors] = useState<Partial<SignInData>>({})
   const [loading, setLoading] = useState(false)
+  const [resendingVerification, setResendingVerification] = useState(false)
+  const [verificationSent, setVerificationSent] = useState(false)
   const [isLocalhost, setIsLocalhost] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
 
-  // Check if we're on localhost
+  // Check if we're on localhost and handle URL errors
   useEffect(() => {
     setIsLocalhost(typeof window !== 'undefined' && window.location.hostname === 'localhost')
-  }, [])
+    
+    // Check for error in URL params
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setUrlError(errorParam)
+      // Clear the error from URL after a delay
+      setTimeout(() => {
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('error')
+        router.replace(newUrl.pathname, { scroll: false })
+      }, 100)
+    }
+  }, [searchParams, router])
 
   const clearLocalStorage = () => {
     if (typeof window !== 'undefined') {
@@ -28,6 +44,34 @@ export default function SignInPage() {
       sessionStorage.clear()
       alert('Cache cleared! Please try signing in again.')
       window.location.reload()
+    }
+  }
+
+  const resendVerificationEmail = async () => {
+    if (!formData.email) {
+      setErrors({ email: 'Please enter your email address first' })
+      return
+    }
+
+    setResendingVerification(true)
+    try {
+      const { error } = await authHelpers.resendConfirmation(formData.email)
+      if (error) {
+        if (error.message.includes('already confirmed')) {
+          setErrors({ email: 'Your email is already verified. Try signing in.' })
+        } else {
+          setErrors({ email: `Failed to resend verification: ${error.message}` })
+        }
+      } else {
+        setVerificationSent(true)
+        setErrors({})
+        // Clear the success message after 8 seconds
+        setTimeout(() => setVerificationSent(false), 8000)
+      }
+    } catch (error: any) {
+      setErrors({ email: 'Failed to resend verification email' })
+    } finally {
+      setResendingVerification(false)
     }
   }
 
@@ -75,7 +119,7 @@ export default function SignInPage() {
       console.log('Starting sign in process...')
       const signInPromise = authHelpers.signInWithEmail(validatedData.email, validatedData.password)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Sign in timeout')), isLocalhost ? 15000 : 8000) // Longer timeout for localhost
+        setTimeout(() => reject(new Error('Sign in timeout')), isLocalhost ? 30000 : 8000) // Much longer timeout for localhost
       )
       
       console.log('Waiting for sign in response...')
@@ -83,7 +127,26 @@ export default function SignInPage() {
       console.log('Sign in response received:', { data: data?.user?.id, error: error?.message })
 
       if (error) {
-        setErrors({ email: error.message })
+        console.error('Sign in error details:', error)
+        
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          setErrors({ 
+            email: 'Invalid email or password. If you just signed up, please verify your email first by clicking the link we sent you.' 
+          })
+        } else if (error.message.includes('Email not confirmed')) {
+          setErrors({ 
+            email: 'Please check your email and click the verification link before signing in. Check your spam folder if you don\'t see it.' 
+          })
+        } else if (error.message.includes('Too many requests')) {
+          setErrors({ email: 'Too many sign in attempts. Please wait a few minutes before trying again.' })
+        } else if (error.message === 'Sign in timeout') {
+          setErrors({ 
+            email: 'Sign in is taking longer than expected. If you just signed up, please verify your email first. You can also try refreshing the page.' 
+          })
+        } else {
+          setErrors({ email: error.message })
+        }
         return
       }
 
@@ -148,6 +211,22 @@ export default function SignInPage() {
             </Link>
           </p>
         </div>
+        
+        {/* URL Error Display */}
+        {urlError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{urlError}</p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* OAuth Buttons */}
         <div className="space-y-3">
@@ -246,6 +325,27 @@ export default function SignInPage() {
                   className="font-medium text-red-600 hover:text-red-500"
                 >
                   🧹 Clear Cache
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Verification email resend section */}
+          <div className="text-center">
+            {verificationSent ? (
+              <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-md p-3">
+                ✅ Verification email sent! Please check your inbox and spam folder.
+              </div>
+            ) : (
+              <div className="text-sm">
+                <span className="text-gray-600">Need to verify your email? </span>
+                <button
+                  type="button"
+                  onClick={resendVerificationEmail}
+                  disabled={resendingVerification || !formData.email}
+                  className="font-medium text-blue-600 hover:text-blue-500 disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend verification email'}
                 </button>
               </div>
             )}
