@@ -21,10 +21,18 @@ interface Pitch {
   status: string
   created_at: string
   updated_at: string
+  upvote_count: number
   startup: {
     id: string
     name: string
     tagline: string
+  }
+}
+
+interface UserInteractions {
+  [pitchId: string]: {
+    hasUpvoted: boolean
+    isWatchlisted: boolean
   }
 }
 
@@ -163,6 +171,9 @@ export default function PitchesPage() {
   const [previewPitch, setPreviewPitch] = useState<Pitch | null>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [userInteractions, setUserInteractions] = useState<UserInteractions>({})
+  const [loadingInteractions, setLoadingInteractions] = useState<{ [key: string]: boolean }>({})
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -220,12 +231,74 @@ export default function PitchesPage() {
       }
 
       const data = await response.json()
-      setPitches(data.pitches || [])
+      const fetchedPitches = data.pitches || []
+      setPitches(fetchedPitches)
+
+      // Load user interactions for investors
+      if (user?.profile?.user_type === 'investor' && fetchedPitches.length > 0) {
+        await loadUserInteractions(fetchedPitches)
+      }
     } catch (error) {
       console.error('Error fetching pitches:', error)
       setError('Failed to load pitches')
     } finally {
       setLoadingPitches(false)
+    }
+  }
+
+  const loadUserInteractions = async (pitchesList: Pitch[]) => {
+    if (!user || user.profile?.user_type !== 'investor') return
+
+    try {
+      const interactions: UserInteractions = {}
+
+      // Load upvote status for each pitch
+      const upvotePromises = pitchesList.map(async (pitch) => {
+        try {
+          const response = await fetch(`/api/upvotes?pitch_id=${pitch.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            return { pitchId: pitch.id, hasUpvoted: data.hasUpvoted }
+          }
+        } catch (error) {
+          console.error(`Error checking upvote for pitch ${pitch.id}:`, error)
+        }
+        return { pitchId: pitch.id, hasUpvoted: false }
+      })
+
+      // Load watchlist status for each startup
+      const watchlistPromises = pitchesList.map(async (pitch) => {
+        try {
+          const response = await fetch(`/api/watchlist?startup_id=${pitch.startup_id}`)
+          if (response.ok) {
+            const data = await response.json()
+            return { pitchId: pitch.id, isWatchlisted: data.isWatchlisted }
+          }
+        } catch (error) {
+          console.error(`Error checking watchlist for startup ${pitch.startup_id}:`, error)
+        }
+        return { pitchId: pitch.id, isWatchlisted: false }
+      })
+
+      const [upvoteResults, watchlistResults] = await Promise.all([
+        Promise.all(upvotePromises),
+        Promise.all(watchlistPromises)
+      ])
+
+      // Combine results
+      pitchesList.forEach((pitch) => {
+        const upvoteResult = upvoteResults.find(r => r.pitchId === pitch.id)
+        const watchlistResult = watchlistResults.find(r => r.pitchId === pitch.id)
+        
+        interactions[pitch.id] = {
+          hasUpvoted: upvoteResult?.hasUpvoted || false,
+          isWatchlisted: watchlistResult?.isWatchlisted || false
+        }
+      })
+
+      setUserInteractions(interactions)
+    } catch (error) {
+      console.error('Error loading user interactions:', error)
     }
   }
 
@@ -243,6 +316,110 @@ export default function PitchesPage() {
   const handleEdit = (pitch: Pitch) => {
     // Navigate to edit page with pitch ID
     router.push(`/edit-pitch/${pitch.id}`)
+  }
+
+  const handleUpvote = async (pitch: Pitch) => {
+    if (!user || user.profile?.user_type !== 'investor') return
+
+    const interactionKey = `upvote-${pitch.id}`
+    setLoadingInteractions(prev => ({ ...prev, [interactionKey]: true }))
+
+    try {
+      const response = await fetch('/api/upvotes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pitch_id: pitch.id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle upvote')
+      }
+
+      // Update local state
+      setUserInteractions(prev => ({
+        ...prev,
+        [pitch.id]: {
+          ...prev[pitch.id],
+          hasUpvoted: data.hasUpvoted
+        }
+      }))
+
+      // Update pitch upvote count locally
+      setPitches(prev => prev.map(p => 
+        p.id === pitch.id 
+          ? { 
+              ...p, 
+              upvote_count: data.hasUpvoted 
+                ? (p.upvote_count || 0) + 1 
+                : Math.max((p.upvote_count || 0) - 1, 0)
+            }
+          : p
+      ))
+
+      // Show success message
+      setNotification({ message: data.message, type: 'success' })
+      setTimeout(() => setNotification(null), 3000)
+
+    } catch (error) {
+      console.error('Error toggling upvote:', error)
+      setNotification({ 
+        message: error instanceof Error ? error.message : 'Failed to toggle upvote. Please try again.',
+        type: 'error'
+      })
+      setTimeout(() => setNotification(null), 3000)
+    } finally {
+      setLoadingInteractions(prev => ({ ...prev, [interactionKey]: false }))
+    }
+  }
+
+  const handleWatchlist = async (pitch: Pitch) => {
+    if (!user || user.profile?.user_type !== 'investor') return
+
+    const interactionKey = `watchlist-${pitch.id}`
+    setLoadingInteractions(prev => ({ ...prev, [interactionKey]: true }))
+
+    try {
+      const response = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ startup_id: pitch.startup_id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle watchlist')
+      }
+
+      // Update local state
+      setUserInteractions(prev => ({
+        ...prev,
+        [pitch.id]: {
+          ...prev[pitch.id],
+          isWatchlisted: data.isWatchlisted
+        }
+      }))
+
+      // Show success message
+      setNotification({ message: data.message, type: 'success' })
+      setTimeout(() => setNotification(null), 3000)
+
+    } catch (error) {
+      console.error('Error toggling watchlist:', error)
+      setNotification({ 
+        message: error instanceof Error ? error.message : 'Failed to toggle watchlist. Please try again.',
+        type: 'error'
+      })
+      setTimeout(() => setNotification(null), 3000)
+    } finally {
+      setLoadingInteractions(prev => ({ ...prev, [interactionKey]: false }))
+    }
   }
 
   const handlePublish = async (pitch: Pitch) => {
@@ -446,6 +623,11 @@ export default function PitchesPage() {
                           <strong>Funding Ask:</strong> ${pitch.funding_ask.toLocaleString()}
                         </p>
                       )}
+                      {user.profile?.user_type === 'investor' && pitch.upvote_count > 0 && (
+                        <p className="text-green-600 text-sm font-medium mb-2">
+                          {pitch.upvote_count} upvote{pitch.upvote_count !== 1 ? 's' : ''}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-col space-y-2 ml-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -455,6 +637,20 @@ export default function PitchesPage() {
                       }`}>
                         {pitch.status === 'published' ? 'Published' : 'Draft'}
                       </span>
+                      {user.profile?.user_type === 'investor' && (
+                        <div className="flex flex-col space-y-1">
+                          {userInteractions[pitch.id]?.hasUpvoted && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ▲ Upvoted
+                            </span>
+                          )}
+                          {userInteractions[pitch.id]?.isWatchlisted && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              ★ Watchlisted
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -507,18 +703,45 @@ export default function PitchesPage() {
                       )}
                       
                       {user.profile?.user_type === 'investor' && (
-                        <>
+                        <div className="flex space-x-2">
                           <button 
-                            className="text-green-600 hover:text-green-800 font-medium"
+                            onClick={() => handleUpvote(pitch)}
+                            disabled={loadingInteractions[`upvote-${pitch.id}`]}
+                            className={`px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              userInteractions[pitch.id]?.hasUpvoted
+                                ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
+                                : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+                            }`}
                           >
-                            ▲ Upvote
+                            {loadingInteractions[`upvote-${pitch.id}`] ? (
+                              '⟳ Loading...'
+                            ) : (
+                              <>
+                                ▲ {userInteractions[pitch.id]?.hasUpvoted ? 'Upvoted' : 'Upvote'}
+                                {pitch.upvote_count > 0 && (
+                                  <span className="ml-1">({pitch.upvote_count})</span>
+                                )}
+                              </>
+                            )}
                           </button>
                           <button 
-                            className="text-purple-600 hover:text-purple-800 font-medium"
+                            onClick={() => handleWatchlist(pitch)}
+                            disabled={loadingInteractions[`watchlist-${pitch.id}`]}
+                            className={`px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              userInteractions[pitch.id]?.isWatchlisted
+                                ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200'
+                                : 'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'
+                            }`}
                           >
-                            + Watchlist
+                            {loadingInteractions[`watchlist-${pitch.id}`] ? (
+                              '⟳ Loading...'
+                            ) : userInteractions[pitch.id]?.isWatchlisted ? (
+                              '★ Watchlisted'
+                            ) : (
+                              '+ Watchlist'
+                            )}
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -535,6 +758,22 @@ export default function PitchesPage() {
         isOpen={isPreviewOpen} 
         onClose={() => setIsPreviewOpen(false)} 
       />
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+          notification.type === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+        }`}>
+          <div className="flex items-center">
+            <span className="mr-2">
+              {notification.type === 'success' ? '✓' : '✗'}
+            </span>
+            {notification.message}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
