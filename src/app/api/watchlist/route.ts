@@ -11,47 +11,44 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const pitch_id = searchParams.get('pitch_id')
+    const startup_id = searchParams.get('startup_id')
 
-    if (pitch_id) {
-      // Check if specific pitch is watchlisted
+    if (startup_id) {
+      // Check if specific startup is watchlisted
       const { data } = await supabase
         .from('watchlists')
         .select('id')
-        .eq('user_id', user.id)
-        .eq('pitch_id', pitch_id)
+        .eq('investor_id', user.id)
+        .eq('startup_id', startup_id)
         .single()
 
       return NextResponse.json({ isWatchlisted: !!data })
     } else {
-      // Get all watchlisted pitches
+      // Get all watchlisted startups
       const { data: watchlist, error } = await supabase
         .from('watchlists')
         .select(`
           id,
           created_at,
-          pitches:pitch_id (
+          startup:startup_id (
             id,
-            title,
+            name,
             tagline,
-            sector,
-            location,
+            description,
+            industry,
             stage,
-            funding_ask,
-            upvote_count,
-            created_at,
-            startups:startup_id (
-              id,
-              name,
-              logo_url,
-              country
-            )
+            funding_goal,
+            current_funding,
+            country,
+            logo_url,
+            website_url
           )
         `)
-        .eq('user_id', user.id)
+        .eq('investor_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) {
+        console.error('Error fetching watchlist:', error)
         return NextResponse.json({ error: 'Failed to fetch watchlist' }, { status: 500 })
       }
 
@@ -72,52 +69,74 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { pitch_id } = await request.json()
+    const { startup_id } = await request.json()
 
-    if (!pitch_id) {
-      return NextResponse.json({ error: 'Pitch ID is required' }, { status: 400 })
+    if (!startup_id) {
+      return NextResponse.json({ error: 'Startup ID is required' }, { status: 400 })
     }
 
     // Check if user is an investor
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('user_type')
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'investor') {
+    if (profile?.user_type !== 'investor') {
       return NextResponse.json({ error: 'Only investors can save to watchlist' }, { status: 403 })
     }
 
-    // Check if already watchlisted
+    // Check if already watchlisted (toggle functionality)
     const { data: existingEntry } = await supabase
       .from('watchlists')
       .select('id')
-      .eq('user_id', user.id)
-      .eq('pitch_id', pitch_id)
+      .eq('investor_id', user.id)
+      .eq('startup_id', startup_id)
       .single()
 
     if (existingEntry) {
-      return NextResponse.json({ error: 'Already in watchlist' }, { status: 409 })
+      // Remove from watchlist (toggle off)
+      const { error: deleteError } = await supabase
+        .from('watchlists')
+        .delete()
+        .eq('id', existingEntry.id)
+
+      if (deleteError) {
+        console.error('Error removing from watchlist:', deleteError)
+        return NextResponse.json({ error: 'Failed to remove from watchlist' }, { status: 500 })
+      }
+
+      return NextResponse.json({ 
+        action: 'removed',
+        isWatchlisted: false,
+        message: 'Removed from watchlist successfully'
+      })
+    } else {
+      // Add to watchlist (toggle on)
+      const { data: watchlistEntry, error: insertError } = await supabase
+        .from('watchlists')
+        .insert([{
+          investor_id: user.id,
+          startup_id: startup_id
+        }])
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error adding to watchlist:', insertError)
+        return NextResponse.json({ error: 'Failed to add to watchlist' }, { status: 500 })
+      }
+
+      return NextResponse.json({ 
+        action: 'added',
+        isWatchlisted: true,
+        watchlistId: watchlistEntry.id,
+        message: 'Added to watchlist successfully'
+      })
     }
 
-    // Add to watchlist
-    const { data: watchlistEntry, error: insertError } = await supabase
-      .from('watchlists')
-      .insert([{
-        user_id: user.id,
-        pitch_id: pitch_id
-      }])
-      .select()
-      .single()
-
-    if (insertError) {
-      return NextResponse.json({ error: 'Failed to add to watchlist' }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, watchlistEntry })
   } catch (error) {
-    console.error('Error adding to watchlist:', error)
+    console.error('Error handling watchlist:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -132,24 +151,28 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const pitch_id = searchParams.get('pitch_id')
+    const startup_id = searchParams.get('startup_id')
 
-    if (!pitch_id) {
-      return NextResponse.json({ error: 'Pitch ID is required' }, { status: 400 })
+    if (!startup_id) {
+      return NextResponse.json({ error: 'Startup ID is required' }, { status: 400 })
     }
 
     // Remove from watchlist
     const { error: deleteError } = await supabase
       .from('watchlists')
       .delete()
-      .eq('user_id', user.id)
-      .eq('pitch_id', pitch_id)
+      .eq('investor_id', user.id)
+      .eq('startup_id', startup_id)
 
     if (deleteError) {
       return NextResponse.json({ error: 'Failed to remove from watchlist' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      isWatchlisted: false,
+      message: 'Removed from watchlist successfully'
+    })
   } catch (error) {
     console.error('Error removing from watchlist:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

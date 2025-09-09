@@ -1,22 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/components/providers'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { storageHelpers, fileValidation } from '@/lib/storage-helpers'
+import { useAuthUser } from '@/components/auth/use-auth-user'
+import { Button } from '@/components/ui/button'
+import { LocationTypeahead } from '@/components/ui/LocationTypeahead'
 import Link from 'next/link'
 
 interface ProfileData {
-  full_name: string
+  user_id: string
   email: string
+  full_name: string
   user_type: 'founder' | 'investor'
   bio?: string
-  company?: string
   location?: string
-  website?: string
   linkedin_url?: string
-  profile_picture_url?: string
+  website?: string
 }
 
 interface PasswordData {
@@ -26,13 +26,14 @@ interface PasswordData {
 }
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, profile, isLoading: authLoading } = useAuthUser()
   const router = useRouter()
   
   const [profileData, setProfileData] = useState<ProfileData>({
+    user_id: '',
     full_name: '',
     email: '',
-    user_type: 'founder'
+    user_type: 'investor'
   })
   const [passwordData, setPasswordData] = useState<PasswordData>({
     currentPassword: '',
@@ -45,31 +46,41 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
   const [passwordMessage, setPasswordMessage] = useState('')
-  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/signin')
+    if (!authLoading && !user) {
+      router.push('/auth/signin')
     }
-  }, [user, loading, router])
+  }, [user, authLoading, router])
 
   // Load user profile data
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       setProfileData({
-        full_name: user.profile?.full_name ?? '',
-        email: user.email ?? '',
-        user_type: (user.profile?.user_type === 'admin' ? 'founder' : user.profile?.user_type) ?? 'founder',
-        bio: user.profile?.bio ?? '',
-        company: user.profile?.company ?? '',
-        location: user.profile?.location ?? '',
-        website: user.profile?.website ?? '',
-        linkedin_url: user.profile?.linkedin_url ?? '',
-        profile_picture_url: user.profile?.profile_picture_url ?? ''
+        user_id: profile.user_id || user.id || '',
+        full_name: profile.full_name || '',
+        email: profile.email || user.email || '',
+        user_type: profile.user_type || 'investor',
+        bio: profile.bio || '',
+        location: profile.location || '',
+        linkedin_url: profile.linkedin_url || '',
+        website: profile.website || ''
+      })
+    } else if (user && !profile) {
+      // If no profile exists, use user data
+      setProfileData({
+        user_id: user.id || '',
+        full_name: user.user_metadata?.full_name || '',
+        email: user.email || '',
+        user_type: user.user_metadata?.user_type || 'investor',
+        bio: '',
+        location: '',
+        linkedin_url: '',
+        website: ''
       })
     }
-  }, [user])
+  }, [user, profile])
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,464 +89,430 @@ export default function ProfilePage() {
       return
     }
     
-    console.log('Starting profile update...')
-    console.log('User ID:', user.id)
-    console.log('Profile data to update:', profileData)
-    
     setProfileLoading(true)
     setProfileMessage('')
 
     try {
-      // First, let's check current session
-      const { data: session, error: sessionError } = await supabase.auth.getSession()
-      console.log('Current session:', session?.session?.user?.id)
-      console.log('Session error:', sessionError)
+      console.log('Starting profile update for user:', user.id)
+      console.log('Profile data:', profileData)
       
-      if (sessionError) {
-        throw new Error(`Session error: ${sessionError.message}`)
-      }
-      
-      if (!session?.session) {
-        throw new Error('No active session found')
+      const updateData = {
+        user_id: user.id,
+        email: profileData.email,
+        full_name: profileData.full_name,
+        user_type: profileData.user_type,
+        bio: profileData.bio || null,
+        location: profileData.location || null,
+        linkedin_url: profileData.linkedin_url || null,
+        website: profileData.website || null
       }
 
-      console.log('Attempting profile update...')
-      
-      // Create update object with only the fields that have values
-      const updateData: any = {}
-      
-      if (profileData.full_name !== undefined) {
-        updateData.full_name = profileData.full_name
-        console.log('Adding full_name:', profileData.full_name)
-      }
-      
-      if (profileData.user_type !== undefined) {
-        updateData.user_type = profileData.user_type
-        console.log('Adding user_type:', profileData.user_type)
-      }
-      
-      if (profileData.bio !== undefined && profileData.bio !== '') {
-        updateData.bio = profileData.bio
-        console.log('Adding bio:', profileData.bio)
-      }
-      
-      if (profileData.company !== undefined && profileData.company !== '') {
-        updateData.company = profileData.company
-        console.log('Adding company:', profileData.company)
-      }
-      
-      if (profileData.location !== undefined && profileData.location !== '') {
-        updateData.location = profileData.location
-        console.log('Adding location:', profileData.location)
-      }
-      
-      if (profileData.website !== undefined && profileData.website !== '') {
-        updateData.website = profileData.website
-        console.log('Adding website:', profileData.website)
-      }
-      
-      if (profileData.linkedin_url !== undefined && profileData.linkedin_url !== '') {
-        updateData.linkedin_url = profileData.linkedin_url
-        console.log('Adding linkedin_url:', profileData.linkedin_url)
-      }
-      
-      console.log('Final update object:', updateData)
-      
-      const { data: updateResponseData, error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id)
+      console.log('Sending update data:', updateData)
+
+      // Use upsert to either insert or update
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert(updateData, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        })
         .select()
 
-      console.log('Update response data:', updateResponseData)
-      console.log('Update error:', updateError)
+      console.log('Upsert response:', { data, error })
 
-      if (updateError) {
-        throw new Error(`Update failed: ${updateError.message} (Code: ${updateError.code})`)
+      if (error) {
+        console.error('Profile update error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        console.error('Error message:', error.message)
+        console.error('Error code:', error.code)
+        
+        // Try admin endpoint as fallback if regular update fails
+        console.log('Trying admin endpoint as fallback...')
+        try {
+          const adminResponse = await fetch('/api/admin/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              profileData: {
+                email: profileData.email,
+                full_name: profileData.full_name,
+                user_type: profileData.user_type,
+                bio: profileData.bio,
+                location: profileData.location,
+                linkedin_url: profileData.linkedin_url,
+                website: profileData.website
+              }
+            })
+          })
+          
+          const adminResult = await adminResponse.json()
+          console.log('Admin endpoint result:', adminResult)
+          
+          if (adminResult.success) {
+            setProfileMessage('Profile updated successfully!')
+          } else {
+            setProfileMessage(`Failed to update profile: ${adminResult.error || 'Unknown error'}`)
+          }
+        } catch (adminError) {
+          console.error('Admin endpoint error:', adminError)
+          setProfileMessage(`Failed to update profile: ${error.message || 'Unknown error'}`)
+        }
+      } else {
+        console.log('Profile updated successfully, data:', data)
+        setProfileMessage('Profile updated successfully!')
+        
+        // Refresh the profile data in the auth hook by reloading
+        if (data && data[0]) {
+          // Update local state to reflect the saved data
+          setProfileData(prev => ({
+            ...prev,
+            ...data[0]
+          }))
+        }
+        
+        // Reload the profile from the database to ensure sync
+        setTimeout(async () => {
+          try {
+            const { data: refreshedProfile, error: refreshError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('user_id', user.id)
+              .single()
+            
+            if (!refreshError && refreshedProfile) {
+              setProfileData(prev => ({
+                ...prev,
+                ...refreshedProfile
+              }))
+              console.log('Profile data refreshed:', refreshedProfile)
+            }
+          } catch (err) {
+            console.log('Profile refresh error:', err)
+          }
+        }, 1000)
+        
+        // Also update auth user metadata
+        console.log('Updating auth metadata...')
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            full_name: profileData.full_name,
+            user_type: profileData.user_type
+          }
+        })
+        
+        if (authError) {
+          console.error('Auth metadata update error:', authError)
+        } else {
+          console.log('Auth metadata updated successfully')
+        }
       }
-
-      setProfileMessage('Profile updated successfully!')
-      console.log('Profile update successful!')
-    } catch (error: any) {
-      console.error('Error updating profile:', error)
-      setProfileMessage(`Error updating profile: ${error.message || 'Please try again.'}`)
+    } catch (err) {
+      console.error('Profile update error:', err)
+      setProfileMessage('Failed to update profile. Please try again.')
     } finally {
       setProfileLoading(false)
     }
   }
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordMessage('New passwords do not match.')
+      return
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      setPasswordMessage('Password must be at least 6 characters long.')
+      return
+    }
+    
     setPasswordLoading(true)
     setPasswordMessage('')
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordMessage('New passwords do not match.')
-      setPasswordLoading(false)
-      return
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      setPasswordMessage('New password must be at least 6 characters.')
-      setPasswordLoading(false)
-      return
-    }
-
     try {
-      // Set a timeout to ensure UI updates even if the response is slow
-      const timeoutId = setTimeout(() => {
-        setPasswordLoading(false)
-        setPasswordMessage('Password update may have succeeded. Please try signing in with your new password.')
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      })
+
+      if (error) {
+        setPasswordMessage(`Failed to update password: ${error.message}`)
+      } else {
+        setPasswordMessage('Password updated successfully!')
         setPasswordData({
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         })
-      }, 5000) // 5 second timeout
-
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      })
-
-      // Clear the timeout since we got a response
-      clearTimeout(timeoutId)
-
-      if (error) {
-        throw error
       }
-
-      setPasswordMessage('Password updated successfully!')
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
-    } catch (error: any) {
-      console.error('Error updating password:', error)
-      setPasswordMessage(`Error updating password: ${error.message || 'Please try again.'}`)
+    } catch (err) {
+      console.error('Password update error:', err)
+      setPasswordMessage('Failed to update password. Please try again.')
     } finally {
       setPasswordLoading(false)
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !user) return
-
-    setUploadingImage(true)
-    setProfileMessage('')
-    
-    try {
-      // Validate the file first
-      const validation = fileValidation.validateImage(file)
-      if (!validation.valid) {
-        setProfileMessage(`Error: ${validation.error}`)
-        setUploadingImage(false)
-        return
-      }
-
-      const result = await storageHelpers.uploadProfilePicture(file, user.id)
-      
-      if (result.error) {
-        throw new Error(result.error.message || 'Upload failed')
-      }
-
-      // Update profile with new image URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ profile_picture_url: result.data?.publicUrl })
-        .eq('id', user.id)
-
-      if (updateError) {
-        throw new Error(`Update failed: ${updateError.message}`)
-      }
-
-      setProfileData(prev => ({
-        ...prev,
-        profile_picture_url: result.data?.publicUrl || ''
-      }))
-
-      setProfileMessage('Profile picture updated successfully!')
-    } catch (error: any) {
-      console.error('Error uploading image:', error)
-      setProfileMessage(`Error uploading image: ${error.message || 'Please try again.'}`)
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E64E1B] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
       </div>
     )
-  }
-
-  if (!user) {
-    return null
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold">
+              <Link href="/" className="text-xl font-bold">
                 <span className="text-[#405B53]">Pitch</span>
                 <span className="text-[#E64E1B]">Moto</span>
               </Link>
-              <div className="ml-8">
-                <Link 
-                  href="/dashboard"
-                  className="text-gray-600 hover:text-[#405B53] transition-colors"
-                >
-                  ← Back to Dashboard
-                </Link>
-              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/app/investors/dashboard"
+                className="text-sm text-gray-700 hover:text-gray-900"
+              >
+                ← Back to Dashboard
+              </Link>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
-            <p className="text-gray-600">Manage your account settings and preferences</p>
-          </div>
-
-          {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'profile'
-                    ? 'border-[#E64E1B] text-[#E64E1B]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Profile Information
-              </button>
-              <button
-                onClick={() => setActiveTab('password')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'password'
-                    ? 'border-[#E64E1B] text-[#E64E1B]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Change Password
-              </button>
-            </nav>
-          </div>
-
-          {/* Tab Content */}
-          <div className="p-6">
-            {activeTab === 'profile' && (
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                {/* Profile Picture */}
-                <div className="flex items-center space-x-6">
-                  <div className="flex-shrink-0">
-                    <img
-                      className="h-20 w-20 rounded-full object-cover"
-                      src={profileData.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.full_name || 'User')}&background=405B53&color=fff`}
-                      alt="Profile"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profile Picture
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#E64E1B] file:text-white hover:file:bg-orange-600"
-                    />
-                    {uploadingImage && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
-                  </div>
-                </div>
-
-                {/* Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={profileData.full_name}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      User Type *
-                    </label>
-                    <select
-                      value={profileData.user_type}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, user_type: e.target.value as 'founder' | 'investor' }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    >
-                      <option value="founder">Founder</option>
-                      <option value="investor">Investor</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.company ?? ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.location ?? ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                      placeholder="City, Country"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Website
-                    </label>
-                    <input
-                      type="url"
-                      value={profileData.website ?? ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    LinkedIn URL
-                  </label>
-                  <input
-                    type="url"
-                    value={profileData.linkedin_url ?? ''}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, linkedin_url: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    placeholder="https://linkedin.com/in/yourprofile"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    value={profileData.bio ?? ''}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                {profileMessage && (
-                  <div className={`p-3 rounded-md ${profileMessage.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                    {profileMessage}
-                  </div>
-                )}
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={profileLoading}
-                    className="bg-[#E64E1B] text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {profileLoading ? 'Updating...' : 'Update Profile'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {activeTab === 'password' && (
-              <form onSubmit={handlePasswordChange} className="space-y-6 max-w-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Password *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    placeholder="Enter new password"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm New Password *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E64E1B]"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-
-                {passwordMessage && (
-                  <div className={`p-3 rounded-md ${passwordMessage.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                    {passwordMessage}
-                  </div>
-                )}
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={passwordLoading}
-                    className="bg-[#E64E1B] text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {passwordLoading ? 'Updating...' : 'Change Password'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+          <p className="text-gray-600 mt-1">Manage your account information and preferences</p>
+          {user && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Debug Info:</strong> User ID: {user.id} | Email: {user.email}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'profile'
+                  ? 'border-[#E64E1B] text-[#E64E1B]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Profile Information
+            </button>
+            <button
+              onClick={() => setActiveTab('password')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'password'
+                  ? 'border-[#E64E1B] text-[#E64E1B]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Change Password
+            </button>
+          </nav>
+        </div>
+
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <form onSubmit={handleProfileUpdate} className="space-y-6">
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileData.full_name}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={profileData.email}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Type
+                </label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <span className="text-sm text-gray-600">
+                    You are registered as an <strong className="text-gray-900 capitalize">{profileData.user_type}</strong>
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Contact support if you need to change your account type.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location
+                </label>
+                <LocationTypeahead
+                  value={profileData.location || ''}
+                  onChange={(value) => setProfileData(prev => ({ ...prev, location: value }))}
+                  placeholder="e.g., San Francisco, CA, USA"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  LinkedIn Profile
+                </label>
+                <input
+                  type="url"
+                  value={profileData.linkedin_url || ''}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, linkedin_url: e.target.value }))}
+                  placeholder="https://linkedin.com/in/yourname"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  value={profileData.website || ''}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
+                  placeholder="https://yourwebsite.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bio
+                </label>
+                <textarea
+                  value={profileData.bio || ''}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                  rows={4}
+                  placeholder="Tell us a bit about yourself..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              {profileMessage && (
+                <div className={`p-3 rounded-md ${
+                  profileMessage.includes('successfully') 
+                    ? 'bg-green-50 text-green-700' 
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  {profileMessage}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={profileLoading}
+                  className="bg-[#E64E1B] hover:bg-[#d63e15] text-white"
+                >
+                  {profileLoading ? 'Updating...' : 'Update Profile'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Password Tab */}
+        {activeTab === 'password' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <form onSubmit={handlePasswordUpdate} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                />
+              </div>
+
+              {passwordMessage && (
+                <div className={`p-3 rounded-md ${
+                  passwordMessage.includes('successfully') 
+                    ? 'bg-green-50 text-green-700' 
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  {passwordMessage}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="bg-[#E64E1B] hover:bg-[#d63e15] text-white"
+                >
+                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   )

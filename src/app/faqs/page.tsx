@@ -10,7 +10,7 @@ export default function FAQsPage() {
     },
     {
       question: "How do investor subscriptions work?",
-      answer: "Investors can browse and upvote pitches for free. Premium features like direct messaging and advanced filtering require a paid subscription."
+      answer: "Investors can browse pitches and save favorites to their watchlist for free. Premium features like direct messaging and advanced filtering require a paid subscription."
     },
     {
       question: "What makes a good pitch on PitchMoto?",
@@ -18,7 +18,7 @@ export default function FAQsPage() {
     },
     {
       question: "How do I get featured on the trending page?",
-      answer: "Pitches are featured based on investor engagement, upvotes, and overall quality. Focus on creating compelling content that resonates with your target investors."
+      answer: "Pitches are featured based on investor engagement, watchlist saves, and overall quality. Focus on creating compelling content that resonates with your target investors."
     },
     {
       question: "Can I update my pitch after posting?",

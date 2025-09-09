@@ -1,0 +1,531 @@
+'use client'
+
+import { useState, useEffect, Suspense } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { authHelpers, profileHelpers } from '@/lib/auth-helpers'
+import { signInSchema, type SignInData } from '@/lib/validations'
+
+function SignInContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [formData, setFormData] = useState<SignInData>({
+    email: '',
+    password: ''
+  })
+  const [errors, setErrors] = useState<Partial<SignInData>>({})
+  const [loading, setLoading] = useState(false)
+  const [resendingVerification, setResendingVerification] = useState(false)
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [isLocalhost, setIsLocalhost] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
+  const [autoFixing, setAutoFixing] = useState(false)
+  const [fixResult, setFixResult] = useState<any>(null)
+
+  // Check if we're on localhost and handle URL errors
+  useEffect(() => {
+    setIsLocalhost(typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    
+    // Check for error in URL params
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setUrlError(errorParam)
+      // Clear the error from URL after a delay
+      setTimeout(() => {
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('error')
+        router.replace(newUrl.pathname, { scroll: false })
+      }, 100)
+    }
+  }, [searchParams, router])
+
+  const clearLocalStorage = () => {
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Clearing all localStorage and sessionStorage...')
+      localStorage.clear()
+      sessionStorage.clear()
+      alert('Cache cleared! Please try signing in again.')
+      window.location.reload()
+    }
+  }
+
+  const resendVerificationEmail = async () => {
+    if (!formData.email) {
+      setErrors({ email: 'Please enter your email address first' })
+      return
+    }
+
+    setResendingVerification(true)
+    try {
+      const { error } = await authHelpers.resendConfirmation(formData.email)
+      if (error) {
+        if (error.message.includes('already confirmed')) {
+          setErrors({ email: 'Your email is already verified. Try signing in.' })
+        } else {
+          setErrors({ email: `Failed to resend verification: ${error.message}` })
+        }
+      } else {
+        setVerificationSent(true)
+        setErrors({})
+        // Clear the success message after 8 seconds
+        setTimeout(() => setVerificationSent(false), 8000)
+      }
+    } catch (error: any) {
+      setErrors({ email: 'Failed to resend verification email' })
+    } finally {
+      setResendingVerification(false)
+    }
+  }
+
+  const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
+    try {
+      let result
+      if (provider === 'google') {
+        result = await authHelpers.signInWithGoogle()
+      } else {
+        result = await authHelpers.signInWithLinkedIn()
+      }
+      
+      if (result.error) {
+        console.error('OAuth sign in error:', result.error)
+        alert('Sign in failed. Please try again.')
+      }
+      // Note: OAuth will redirect to callback page automatically
+    } catch (error) {
+      console.error('OAuth sign in error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    }
+  }
+
+  const handleAutoFix = async () => {
+    if (!formData.email) {
+      alert('Please enter your email first')
+      return
+    }
+
+    setAutoFixing(true)
+    setFixResult(null)
+
+    try {
+      console.log('🔧 Starting auto-fix for:', formData.email)
+      
+      const response = await fetch('/api/auth-fix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email })
+      })
+
+      const result = await response.json()
+      setFixResult(result)
+
+      if (result.success) {
+        console.log('✅ Auto-fix successful:', result.actions)
+        alert(`Account fixed! Actions taken: ${result.actions.join(', ')}. You can now try signing in normally.`)
+      } else {
+        console.error('❌ Auto-fix failed:', result.error)
+        alert(`Auto-fix failed: ${result.error || result.message}`)
+      }
+
+    } catch (error) {
+      console.error('Error during auto-fix:', error)
+      alert('Auto-fix failed. Please try again or contact support.')
+    } finally {
+      setAutoFixing(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setErrors({})
+
+    try {
+      // Validate form data
+      const validatedData = signInSchema.parse(formData)
+
+      // Check if we're on localhost and log additional debug info
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      if (isLocalhost) {
+        console.log('🏠 Running on localhost - checking for potential issues...')
+        console.log('📊 localStorage keys:', Object.keys(localStorage))
+        console.log('🔐 Auth environment:', {
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
+          hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        })
+      }
+
+      // Sign in user with improved timeout and retry logic
+      console.log('Starting sign in process...')
+      
+      let signInResult
+      const maxRetries = 2
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`Sign in attempt ${attempt}/${maxRetries}`)
+        
+        try {
+          const signInPromise = authHelpers.signInWithEmail(validatedData.email, validatedData.password)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Sign in timeout')), isLocalhost ? 45000 : 15000) // Longer timeout
+          )
+          
+          signInResult = await Promise.race([signInPromise, timeoutPromise]) as any
+          console.log('Sign in response received:', { 
+            user: signInResult?.data?.user?.id ? 'Found' : 'None', 
+            error: signInResult?.error?.message 
+          })
+          
+          // If successful or has a definitive error (not timeout), break
+          if (signInResult && (signInResult.data?.user || signInResult.error)) {
+            break
+          }
+          
+        } catch (attemptError: any) {
+          console.log(`Attempt ${attempt} failed:`, attemptError.message)
+          
+          if (attempt === maxRetries) {
+            // On final attempt, throw the error
+            throw attemptError
+          } else {
+            // Wait before retry
+            console.log('Waiting 2 seconds before retry...')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          }
+        }
+      }
+
+      const { data, error } = signInResult
+
+      if (error) {
+        console.error('Sign in error details:', error)
+        
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          setErrors({ 
+            email: 'Invalid email or password. If you just signed up, please verify your email first by clicking the link we sent you.' 
+          })
+        } else if (error.message.includes('Email not confirmed')) {
+          setErrors({ 
+            email: 'Please check your email and click the verification link before signing in. Check your spam folder if you don\'t see it.' 
+          })
+        } else if (error.message.includes('Too many requests')) {
+          setErrors({ email: 'Too many sign in attempts. Please wait a few minutes before trying again.' })
+        } else if (error.message === 'Sign in timeout') {
+          setErrors({ 
+            email: 'Sign in is taking longer than expected. If you just signed up, please verify your email first. You can also try refreshing the page.' 
+          })
+        } else {
+          setErrors({ email: error.message })
+        }
+        return
+      }
+
+      if (data.user) {
+        // Simply redirect to dashboard - let dashboard handle role-based routing
+        // This prevents hanging issues during sign-in
+        console.log('Sign in successful, redirecting to dashboard')
+        
+        // On localhost, add a small delay to ensure state is properly set
+        if (isLocalhost) {
+          console.log('🏠 Localhost detected - adding state stabilization delay...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
+        router.push('/app/investors/dashboard')
+      }
+    } catch (error: any) {
+      if (error.message === 'Sign in timeout') {
+        console.error('⏰ Sign in timed out')
+        setErrors({ email: 'Sign in is taking longer than expected. This may be a localhost issue. Try refreshing the page or clearing browser cache.' })
+      } else if (error.errors) {
+        const fieldErrors: Partial<SignInData> = {}
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0] as keyof SignInData] = err.message
+        })
+        setErrors(fieldErrors)
+      } else {
+        console.error('🚨 Unexpected sign in error:', error)
+        setErrors({ email: 'An unexpected error occurred' })
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    // Clear error when user starts typing
+    if (errors[name as keyof SignInData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }))
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <Link href="/" className="flex justify-center">
+            <span className="text-3xl font-bold">
+              <span className="text-blue-600">Pitch</span>
+              <span className="text-indigo-500">Moto</span>
+            </span>
+          </Link>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{' '}
+            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              create a new account
+            </Link>
+          </p>
+        </div>
+        
+        {/* Localhost Helper Tools */}
+        {isLocalhost && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">Development Tools</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>Having sign-in issues? Try these development helpers:</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={clearLocalStorage}
+                    className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm font-medium hover:bg-yellow-200 transition-colors"
+                  >
+                    🧹 Clear Cache
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAutoFix}
+                    disabled={autoFixing || !formData.email}
+                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm font-medium hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {autoFixing ? '🔧 Fixing...' : '🔧 Auto-Fix Account'}
+                  </button>
+                </div>
+                {fixResult && (
+                  <div className={`mt-3 p-2 rounded text-sm ${
+                    fixResult.success 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    <p className="font-medium">
+                      {fixResult.success ? '✅ Success!' : '❌ Failed'}
+                    </p>
+                    <p>{fixResult.message}</p>
+                    {fixResult.actions && (
+                      <p className="text-xs mt-1">Actions: {fixResult.actions.join(', ')}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sign in is taking longer than expected */}
+        {loading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-800">
+                  Sign in is taking longer than expected. This may be a localhost issue. Try refreshing the page or clearing browser cache.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* URL Error Display */}
+        {urlError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{urlError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* OAuth Buttons */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => handleOAuthSignIn('google')}
+            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continue with Google
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleOAuthSignIn('linkedin')}
+            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="w-5 h-5 mr-2" fill="#0077B5" viewBox="0 0 24 24">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            Continue with LinkedIn
+          </button>
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gray-50 text-gray-500">Or continue with email</span>
+          </div>
+        </div>
+
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                  errors.email ? 'border-red-500' : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm`}
+                placeholder="Enter your email"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-600 focus:border-blue-600 focus:z-10 sm:text-sm`}
+                placeholder="Enter your password"
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                Forgot your password?
+              </a>
+            </div>
+            {isLocalhost && (
+              <div className="text-sm">
+                <button
+                  type="button"
+                  onClick={clearLocalStorage}
+                  className="font-medium text-red-600 hover:text-red-500"
+                >
+                  🧹 Clear Cache
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Verification email resend section */}
+          <div className="text-center">
+            {verificationSent ? (
+              <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-md p-3">
+                ✅ Verification email sent! Please check your inbox and spam folder.
+              </div>
+            ) : (
+              <div className="text-sm">
+                <span className="text-gray-600">Need to verify your email? </span>
+                <button
+                  type="button"
+                  onClick={resendVerificationEmail}
+                  disabled={resendingVerification || !formData.email}
+                  className="font-medium text-blue-600 hover:text-blue-500 disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign in'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
+  )
+}
