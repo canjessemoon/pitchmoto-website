@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers'
 import Link from 'next/link'
-import { Search, Filter, Grid, List, TrendingUp, Clock, MapPin, Users } from 'lucide-react'
+import { Search, Filter, Grid, List, Clock, MapPin, Users } from 'lucide-react'
 
 interface Startup {
   id: string
@@ -24,7 +24,6 @@ interface Pitch {
   title: string
   content: string
   funding_ask: number | null
-  upvote_count: number
   created_at: string
   startup: Startup
 }
@@ -37,7 +36,7 @@ export default function StartupsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIndustry, setSelectedIndustry] = useState('')
   const [selectedStage, setSelectedStage] = useState('')
-  const [sortBy, setSortBy] = useState('newest') // newest, trending, funding
+  const [sortBy, setSortBy] = useState('newest') // newest, funding
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   // Industry options
@@ -105,8 +104,6 @@ export default function StartupsPage() {
     // Sort pitches
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'trending':
-          return b.upvote_count - a.upvote_count
         case 'funding':
           return (b.funding_ask || 0) - (a.funding_ask || 0)
         case 'newest':
@@ -170,7 +167,7 @@ export default function StartupsPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Discover Startups
+              Investor Dashboard
             </h1>
             <p className="text-gray-600">
               Browse innovative startups looking for investment and support
@@ -233,7 +230,6 @@ export default function StartupsPage() {
                   className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#405B53]"
                 >
                   <option value="newest">Newest</option>
-                  <option value="trending">Trending</option>
                   <option value="funding">Funding Amount</option>
                 </select>
               </div>
@@ -338,12 +334,6 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
               <h3 className="text-xl font-semibold text-gray-900 mr-3">
                 {startup.name}
               </h3>
-              {pitch.upvote_count > 0 && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {pitch.upvote_count}
-                </span>
-              )}
             </div>
             
             <p className="text-gray-600 mb-2">{startup.tagline}</p>
@@ -390,12 +380,6 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xl font-semibold text-gray-900">{startup.name}</h3>
-          {pitch.upvote_count > 0 && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              {pitch.upvote_count}
-            </span>
-          )}
         </div>
         
         <p className="text-gray-600 mb-4 line-clamp-2">{startup.tagline}</p>

@@ -73,7 +73,7 @@ export default function SignUpPage() {
               </p>
               <div className="mt-3 text-xs text-gray-500">
                 • Browse startup pitches<br />
-                • Upvote & comment<br />
+                • Save to watchlist & comment<br />
                 • Direct messaging<br />
                 • Free & paid tiers
               </div>

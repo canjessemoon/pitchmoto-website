@@ -1,12 +1,21 @@
 import { supabase } from './supabase'
-import { Database } from '@/types/database'
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+export interface UserProfile {
+  user_id: string
+  email: string
+  first_name?: string
+  last_name?: string
+  user_type: 'founder' | 'investor' | 'admin'
+  bio?: string
+  profile_image_url?: string
+  created_at: string
+  updated_at: string
+}
 
 export interface AuthUser {
   id: string
   email: string
-  profile?: Profile
+  profile?: UserProfile
 }
 
 export const auth = {
@@ -92,9 +101,9 @@ export const auth = {
 
       // Get user profile with timeout
       const profilePromise = supabase
-        .from('profiles')
+        .from('user_profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
 
       const timeoutPromise = new Promise((_, reject) =>
@@ -152,11 +161,11 @@ export const auth = {
   },
 
   // Update user profile
-  updateProfile: async (userId: string, updates: Partial<Profile>) => {
+  updateProfile: async (userId: string, updates: Partial<UserProfile>) => {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update(updates)
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single()
     
@@ -166,9 +175,9 @@ export const auth = {
   // Check if user has specific role
   hasRole: async (userId: string, role: 'founder' | 'investor' | 'admin') => {
     const { data } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('user_type')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single()
     
     return data?.user_type === role

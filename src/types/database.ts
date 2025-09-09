@@ -280,6 +280,162 @@ export interface Database {
           updated_at?: string
         }
       }
+      investor_theses: {
+        Row: {
+          id: string
+          investor_id: string
+          min_funding_ask: number
+          max_funding_ask: number
+          preferred_industries: string[]
+          preferred_stages: string[]
+          preferred_locations: string[]
+          min_equity_percentage: number
+          max_equity_percentage: number
+          industry_weight: number
+          stage_weight: number
+          funding_weight: number
+          location_weight: number
+          traction_weight: number
+          team_weight: number
+          keywords: string[]
+          exclude_keywords: string[]
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          investor_id: string
+          min_funding_ask?: number
+          max_funding_ask?: number
+          preferred_industries?: string[]
+          preferred_stages?: string[]
+          preferred_locations?: string[]
+          min_equity_percentage?: number
+          max_equity_percentage?: number
+          industry_weight?: number
+          stage_weight?: number
+          funding_weight?: number
+          location_weight?: number
+          traction_weight?: number
+          team_weight?: number
+          keywords?: string[]
+          exclude_keywords?: string[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          investor_id?: string
+          min_funding_ask?: number
+          max_funding_ask?: number
+          preferred_industries?: string[]
+          preferred_stages?: string[]
+          preferred_locations?: string[]
+          min_equity_percentage?: number
+          max_equity_percentage?: number
+          industry_weight?: number
+          stage_weight?: number
+          funding_weight?: number
+          location_weight?: number
+          traction_weight?: number
+          team_weight?: number
+          keywords?: string[]
+          exclude_keywords?: string[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      startup_matches: {
+        Row: {
+          id: string
+          startup_id: string
+          investor_id: string
+          thesis_id: string
+          overall_score: number
+          industry_score: number
+          stage_score: number
+          funding_score: number
+          location_score: number
+          traction_score: number
+          team_score: number
+          match_reason: string | null
+          confidence_level: 'low' | 'medium' | 'high'
+          status: 'pending' | 'viewed' | 'interested' | 'not_interested' | 'contacted'
+          viewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          startup_id: string
+          investor_id: string
+          thesis_id: string
+          overall_score?: number
+          industry_score?: number
+          stage_score?: number
+          funding_score?: number
+          location_score?: number
+          traction_score?: number
+          team_score?: number
+          match_reason?: string | null
+          confidence_level?: 'low' | 'medium' | 'high'
+          status?: 'pending' | 'viewed' | 'interested' | 'not_interested' | 'contacted'
+          viewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          startup_id?: string
+          investor_id?: string
+          thesis_id?: string
+          overall_score?: number
+          industry_score?: number
+          stage_score?: number
+          funding_score?: number
+          location_score?: number
+          traction_score?: number
+          team_score?: number
+          match_reason?: string | null
+          confidence_level?: 'low' | 'medium' | 'high'
+          status?: 'pending' | 'viewed' | 'interested' | 'not_interested' | 'contacted'
+          viewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      match_interactions: {
+        Row: {
+          id: string
+          match_id: string
+          investor_id: string
+          startup_id: string
+          interaction_type: 'view' | 'like' | 'pass' | 'save' | 'contact' | 'note'
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          investor_id: string
+          startup_id: string
+          interaction_type: 'view' | 'like' | 'pass' | 'save' | 'contact' | 'note'
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          investor_id?: string
+          startup_id?: string
+          interaction_type?: 'view' | 'like' | 'pass' | 'save' | 'contact' | 'note'
+          notes?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -292,6 +448,9 @@ export interface Database {
       pitch_type: 'text' | 'video' | 'slide'
       subscription_status: 'active' | 'canceled' | 'past_due' | 'unpaid'
       plan_type: 'basic' | 'premium'
+      confidence_level: 'low' | 'medium' | 'high'
+      match_status: 'pending' | 'viewed' | 'interested' | 'not_interested' | 'contacted'
+      interaction_type: 'view' | 'like' | 'pass' | 'save' | 'contact' | 'note'
     }
   }
 }

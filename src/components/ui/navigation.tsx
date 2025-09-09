@@ -15,7 +15,7 @@ export function Navigation() {
       try {
         const { data: profile } = await profileHelpers.getProfile(user.id)
         if (profile?.user_type === 'investor') {
-          router.push('/app/startups')
+          router.push('/app/investors/dashboard')
         } else {
           router.push('/dashboard')
         }
@@ -53,6 +53,12 @@ export function Navigation() {
               className="text-gray-600 hover:text-blue-600 transition-colors"
             >
               Discover Startups
+            </Link>
+            <Link
+              href="/resources"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Resources
             </Link>
             <Link
               href="/how-it-works"

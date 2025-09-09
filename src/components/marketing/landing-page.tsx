@@ -142,7 +142,7 @@ export function LandingPage() {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Discover & Connect</h3>
                   <p className="text-gray-500">
-                    Investors browse pitches, upvote favorites, and connect directly with promising startups.
+                    Investors browse pitches, save favorites to their watchlist, and connect directly with promising startups.
                   </p>
                 </div>
                 <div className="text-center">
@@ -155,6 +155,85 @@ export function LandingPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Resources Section */}
+        <div className="py-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-4">
+                Free Startup Resources
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Get access to professional templates, guides, and tools to help you create compelling pitches and grow your startup.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Pitch Deck Templates</h3>
+                <p className="text-gray-600 mb-4">
+                  Professional pitch deck templates for different industries and business models.
+                </p>
+                <Link 
+                  href="/resources"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Download Templates →
+                </Link>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Video Creation Guides</h3>
+                <p className="text-gray-600 mb-4">
+                  Step-by-step guides to creating compelling pitch videos that capture investor attention.
+                </p>
+                <Link 
+                  href="/resources"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Learn Video Creation →
+                </Link>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Financial Models</h3>
+                <p className="text-gray-600 mb-4">
+                  Simple financial projection templates and guides to model your startup's growth.
+                </p>
+                <Link 
+                  href="/resources"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Get Templates →
+                </Link>
+              </div>
+            </div>
+            
+            <div className="text-center mt-8">
+              <Link
+                href="/resources"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#405B53] hover:bg-green-700"
+              >
+                View All Resources
+              </Link>
             </div>
           </div>
         </div>

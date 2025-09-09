@@ -34,7 +34,7 @@ export default function HowItWorksPage() {
             </div>
             <h3 className="text-xl font-semibold text-[#405B53] mb-2">Get Discovered</h3>
             <p className="text-gray-600">
-              Investors browse and upvote pitches they find interesting and promising.
+              Investors browse and save pitches they find interesting and promising to their watchlist.
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default function HowItWorksPage() {
               </li>
               <li className="flex items-start">
                 <span className="text-[#E64E1B] mr-2">✓</span>
-                Upvote promising pitches
+                Save promising pitches
               </li>
               <li className="flex items-start">
                 <span className="text-[#E64E1B] mr-2">✓</span>
