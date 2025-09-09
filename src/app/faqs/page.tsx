@@ -1,5 +1,6 @@
 import { Navigation } from '@/components/ui/navigation'
 import Link from 'next/link'
+import { ContactSupportButton } from '@/components/ui/contact-support-button'
 
 export default function FAQsPage() {
   const faqs = [
@@ -72,12 +73,7 @@ export default function FAQsPage() {
             We're here to help! Reach out to our team for personalized support.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="mailto:support@pitchmoto.com"
-              className="bg-[#405B53] text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Contact Support
-            </Link>
+            <ContactSupportButton />
             <Link
               href="/signup"
               className="bg-[#E64E1B] text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors"

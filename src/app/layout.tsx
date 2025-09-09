@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from '@/components/providers'
+import { GoogleAnalytics } from '@/components/analytics/google-analytics'
+import { CookieConsentProvider } from '@/contexts/cookie-consent-context'
+import { CookieBanner } from '@/components/cookie-consent/cookie-banner'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,9 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <Providers>
-          {children}
-        </Providers>
+        <CookieConsentProvider>
+          <GoogleAnalytics />
+          <Providers>
+            {children}
+          </Providers>
+          <CookieBanner />
+        </CookieConsentProvider>
       </body>
     </html>
   );
