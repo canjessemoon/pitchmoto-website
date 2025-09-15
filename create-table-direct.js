@@ -1,14 +1,14 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-if (!supabaseServiceKey) {
-  console.error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+if (!supabaseSecretKey) {
+  console.error('SUPABASE_SECRET_KEY environment variable is required');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+const supabase = createClient(supabaseUrl, supabaseSecretKey, {
   db: { schema: 'public' }
 });
 
@@ -69,8 +69,8 @@ async function createInvestorThesesTable() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey
+        'Authorization': `Bearer ${supabaseSecretKey}`,
+        'apikey': supabaseSecretKey
       },
       body: JSON.stringify({ sql: createTableSQL })
     });
