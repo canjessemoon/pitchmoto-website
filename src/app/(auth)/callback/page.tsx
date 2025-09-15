@@ -22,9 +22,9 @@ export default function AuthCallbackPage() {
         if (data.session) {
           // Check if user has a profile
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('user_profiles')
             .select('*')
-            .eq('id', data.session.user.id)
+            .eq('user_id', data.session.user.id)
             .single()
 
           if (!profile) {

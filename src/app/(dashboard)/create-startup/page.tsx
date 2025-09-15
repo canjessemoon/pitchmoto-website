@@ -30,15 +30,7 @@ const INDUSTRIES = [
   'Fashion', 'Travel', 'Sports', 'Energy', 'Other'
 ]
 
-// Stage options
-const STAGES = [
-  'Idea/Concept',
-  'MVP/Prototype', 
-  'Early Revenue',
-  'Growth Stage',
-  'Scaling',
-  'Pre-IPO'
-]
+import { FOUNDER_STAGES } from '@/lib/stages'
 
 // Country options for incorporation
 const COUNTRIES = [
@@ -351,10 +343,17 @@ export default function CreateStartupPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
                 >
                   <option value="">Select your current stage</option>
-                  {STAGES.map((stage) => (
-                    <option key={stage} value={stage}>{stage}</option>
+                  {FOUNDER_STAGES.map((stage) => (
+                    <option key={stage.value} value={stage.value}>
+                      {stage.label}
+                    </option>
                   ))}
                 </select>
+                {formData.stage && (
+                  <p className="text-blue-600 text-sm mt-2">
+                    💡 {FOUNDER_STAGES.find(s => s.value === formData.stage)?.description}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -364,7 +363,7 @@ export default function CreateStartupPage() {
                 <input
                   type="number"
                   value={formData.fundingGoal}
-                  onChange={(e) => updateFormData('fundingGoal', parseInt(e.target.value) || 0)}
+                  onChange={(e) => updateFormData('fundingGoal', Math.max(parseInt(e.target.value) || 1000, 1000))}
                   min="1000"
                   step="1000"
                   placeholder="100000"
@@ -372,6 +371,9 @@ export default function CreateStartupPage() {
                 />
                 <p className="text-gray-500 text-sm mt-1">
                   ${formData.fundingGoal.toLocaleString()} (minimum $1,000)
+                </p>
+                <p className="text-blue-600 text-sm mt-1">
+                  💡 Tip: This should match the funding ask in your pitch decks for consistency
                 </p>
               </div>
 
@@ -431,7 +433,7 @@ export default function CreateStartupPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Website URL <span className="text-gray-500">(Optional)</span>
+                  Company Website <span className="text-gray-500">(Optional)</span>
                 </label>
                 <input
                   type="url"
@@ -440,6 +442,9 @@ export default function CreateStartupPage() {
                   placeholder="https://yourcompany.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
                 />
+                <p className="text-gray-500 text-sm mt-1">
+                  Your startup's official website URL
+                </p>
               </div>
             </div>
           )}

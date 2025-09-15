@@ -139,7 +139,6 @@ export async function GET(request: NextRequest) {
             country
           )
         `)
-        .eq('status', 'published')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -189,12 +188,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare insert data - exclude funding_ask until column is added to database
+    // Prepare insert data
     const insertData: any = {
       startup_id,
       title,
       content,
-      pitch_type
+      pitch_type,
+      status: 'draft' // New pitches start as draft
     }
 
     // Add funding_ask if provided

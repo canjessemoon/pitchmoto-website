@@ -11,18 +11,26 @@ export const authHelpers = {
   },
 
   signUpWithEmail: async (email: string, password: string, fullName?: string, userType: 'founder' | 'investor' = 'founder') => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          user_type: userType
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-    return { data, error }
+    try {
+      // Use traditional signup - this creates the user with password
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            user_type: userType
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+      
+      // Don't try to create profile immediately - let the auth flow handle it
+      return { data, error }
+    } catch (err) {
+      console.error('Signup error:', err)
+      return { data: null, error: err }
+    }
   },
 
   // OAuth Providers
@@ -105,9 +113,9 @@ export const profileHelpers = {
   // Get user profile
   getProfile: async (userId: string) => {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single()
     
     return { data, error }
@@ -117,11 +125,15 @@ export const profileHelpers = {
   updateProfile: async (userId: string, updates: {
     full_name?: string
     user_type?: 'founder' | 'investor' | 'admin'
+    bio?: string
+    location?: string
+    linkedin_url?: string
+    website?: string
   }) => {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update(updates)
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single()
     
@@ -131,9 +143,9 @@ export const profileHelpers = {
   // Create profile (called automatically by trigger, but can be used manually)
   createProfile: async (userId: string, email: string, fullName?: string, userType: 'founder' | 'investor' = 'founder') => {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .upsert({
-        id: userId,
+        user_id: userId,
         email,
         full_name: fullName,
         user_type: userType

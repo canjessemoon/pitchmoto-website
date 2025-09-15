@@ -16,7 +16,6 @@ interface ProfileData {
   bio?: string
   location?: string
   linkedin_url?: string
-  website?: string
 }
 
 interface PasswordData {
@@ -64,8 +63,7 @@ export default function ProfilePage() {
         user_type: profile.user_type || 'investor',
         bio: profile.bio || '',
         location: profile.location || '',
-        linkedin_url: profile.linkedin_url || '',
-        website: profile.website || ''
+        linkedin_url: profile.linkedin_url || ''
       })
     } else if (user && !profile) {
       // If no profile exists, use user data
@@ -76,8 +74,7 @@ export default function ProfilePage() {
         user_type: user.user_metadata?.user_type || 'investor',
         bio: '',
         location: '',
-        linkedin_url: '',
-        website: ''
+        linkedin_url: ''
       })
     }
   }, [user, profile])
@@ -103,8 +100,7 @@ export default function ProfilePage() {
         user_type: profileData.user_type,
         bio: profileData.bio || null,
         location: profileData.location || null,
-        linkedin_url: profileData.linkedin_url || null,
-        website: profileData.website || null
+        linkedin_url: profileData.linkedin_url || null
       }
 
       console.log('Sending update data:', updateData)
@@ -140,8 +136,7 @@ export default function ProfilePage() {
                 user_type: profileData.user_type,
                 bio: profileData.bio,
                 location: profileData.location,
-                linkedin_url: profileData.linkedin_url,
-                website: profileData.website
+                linkedin_url: profileData.linkedin_url
               }
             })
           })
@@ -395,19 +390,6 @@ export default function ProfilePage() {
                   value={profileData.linkedin_url || ''}
                   onChange={(e) => setProfileData(prev => ({ ...prev, linkedin_url: e.target.value }))}
                   placeholder="https://linkedin.com/in/yourname"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Website
-                </label>
-                <input
-                  type="url"
-                  value={profileData.website || ''}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-                  placeholder="https://yourwebsite.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
                 />
               </div>

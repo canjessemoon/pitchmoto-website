@@ -399,6 +399,9 @@ export default function CreatePitchPage() {
                 <p className="text-gray-500 text-sm mt-1">
                   ${formData.fundingAsk.toLocaleString()} (minimum $1,000)
                 </p>
+                <p className="text-blue-600 text-sm mt-1">
+                  💡 Tip: Keep this consistent with your startup's funding goal for clarity
+                </p>
               </div>
             </div>
           )}

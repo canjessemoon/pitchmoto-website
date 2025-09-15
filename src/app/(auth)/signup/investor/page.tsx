@@ -90,8 +90,8 @@ export default function InvestorSignUpPage() {
       if (data.user) {
         // Skip profile creation here - let the database trigger handle it
         // This prevents the hanging issue
-        alert('Investor account created successfully! Please check your email to verify your account.')
-        router.push('/signin')
+        alert('Investor account created successfully! Click OK to get your verification code.')
+        router.push(`/request-code?email=${encodeURIComponent(formData.email)}`)
       }
     } catch (error: any) {
       if (error.message === 'Signup timeout') {

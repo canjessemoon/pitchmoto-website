@@ -9,9 +9,9 @@ const investorThesisSchema = z.object({
   max_funding_ask: z.number().min(0).default(10000000),
   preferred_industries: z.array(z.string()).default([]),
   preferred_stages: z.array(z.string()).default([]),
-  preferred_locations: z.array(z.string()).default([]),
-  min_equity_percentage: z.number().min(0).max(100).default(0),
-  max_equity_percentage: z.number().min(0).max(100).default(100),
+  countries: z.array(z.string()).default([]),
+  no_location_pref: z.boolean().default(false),
+  remote_ok: z.boolean().default(true),
   industry_weight: z.number().min(0).max(1).default(0.25),
   stage_weight: z.number().min(0).max(1).default(0.20),
   funding_weight: z.number().min(0).max(1).default(0.15),
@@ -25,29 +25,49 @@ const investorThesisSchema = z.object({
 
 function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  return createClient<Database>(supabaseUrl, supabaseServiceKey)
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${supabaseAnonKey}`
+      }
+    }
+  })
 }
 
-async function getAuthenticatedUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-  const supabase = createSupabaseClient()
+function createSupabaseServerClient() {
+  const cookieStore = cookies()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   
-  const { data: { user }, error } = await supabase.auth.getUser(token)
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      set(name: string, value: string, options: any) {
+        cookieStore.set({ name, value, ...options })
+      },
+      remove(name: string, options: any) {
+        cookieStore.set({ name, value: '', ...options })
+      },
+    },
+  })
+}
+
+async function getAuthenticatedUser() {
+  const supabase = createSupabaseServerClient()
+  
+  const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) {
     return null
   }
 
   // Get user profile to check role
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('user_profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!profile || profile.user_type !== 'investor') {
@@ -109,10 +129,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Additional validation: equity range
-    if (validatedData.min_equity_percentage > validatedData.max_equity_percentage) {
+    // Additional validation: location preferences
+    if (!validatedData.no_location_pref && validatedData.countries.length === 0) {
       return NextResponse.json(
-        { error: 'Minimum equity percentage cannot be greater than maximum equity percentage' },
+        { error: 'Either select countries or enable "No location preference"' },
         { status: 400 }
       )
     }

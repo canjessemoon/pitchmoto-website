@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/components/providers'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useState, useEffect, useCallback, Suspense } from 'react'
@@ -75,10 +76,52 @@ function DashboardContent() {
   useEffect(() => {
     if (!loading && !user) {
       router.push('/signin')
+    } else if (user && user.profile?.user_type === 'investor') {
+      // Investors should not be on the founder dashboard
+      // Check if they have a thesis, if not redirect to create one
+      checkInvestorThesis()
     } else if (user && user.profile?.user_type === 'founder') {
       fetchUserData()
     }
   }, [user, loading, router, fetchUserData])
+
+  const checkInvestorThesis = async () => {
+    if (!user?.id) return
+    
+    try {
+      console.log('Checking thesis for user:', user.id)
+      
+      // Use Supabase client directly instead of API route
+      const { data: theses, error } = await supabase
+        .from('investor_theses')
+        .select('*')
+        .eq('investor_id', user.id)
+        .eq('is_active', true)
+
+      console.log('Thesis check result:', { theses, error })
+
+      if (error) {
+        console.error('Thesis query error:', error)
+        // Default to thesis creation
+        router.push('/thesis')
+        return
+      }
+
+      if (theses && theses.length > 0) {
+        console.log('Found existing thesis, redirecting to matches')
+        // Thesis exists, redirect to matches
+        router.push('/matches')
+      } else {
+        console.log('No thesis found, redirecting to create one')
+        // No thesis, redirect to create one
+        router.push('/thesis')
+      }
+    } catch (error) {
+      console.error('Error checking thesis:', error)
+      // Default to thesis creation
+      router.push('/thesis')
+    }
+  }
 
   // Handle saved parameter client-side only
   useEffect(() => {
@@ -139,7 +182,7 @@ function DashboardContent() {
                 ↻ Refresh
               </button>
               <span className="text-gray-700">
-                Welcome, {user.profile?.full_name || user.email}
+                Welcome, {user.profile?.first_name ? `${user.profile.first_name} ${user.profile.last_name}` : user.email}
               </span>
               <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 {user.profile?.user_type || 'User'}
@@ -350,6 +393,16 @@ function DashboardContent() {
                       </Link>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-lg font-semibold mb-2">Investor Matches</h3>
+                      <p className="text-gray-600 mb-4 text-sm">See which investors match your startup.</p>
+                      <Link 
+                        href="/investor-matches"
+                        className="text-purple-600 hover:text-purple-800 font-medium text-sm"
+                      >
+                        View Matches →
+                      </Link>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">Analytics</h3>
                       <p className="text-gray-600 mb-4 text-sm">Track your pitch performance.</p>
                       <span className="text-gray-400 text-sm">Coming Soon</span>
@@ -434,47 +487,165 @@ function DashboardContent() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="space-y-6">
+                  {/* Investor Journey Steps */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Investment Journey</h2>
+                    
+                    {/* Step 1: Set Investment Thesis */}
+                    <div className="flex items-start space-x-4 mb-6">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+                        1
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Step 1: Define Your Investment Thesis
+                        </h3>
+                        <p className="text-gray-600 mb-3">
+                          Set your investment criteria to get personalized startup matches based on your preferences.
+                        </p>
+                        <Link 
+                          href="/thesis"
+                          className="bg-[#E64E1B] text-white px-4 py-2 rounded-lg hover:bg-[#d63d0f] font-medium inline-block"
+                        >
+                          Create Investment Thesis
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Review Matches */}
+                    <div className="flex items-start space-x-4 mb-6">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400">
+                        2
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Step 2: Review Personalized Matches
+                        </h3>
+                        <p className="text-gray-600 mb-3">
+                          Discover startups that match your investment criteria with detailed compatibility scores.
+                        </p>
+                        <Link 
+                          href="/matches"
+                          className="bg-[#405B53] text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium inline-block"
+                        >
+                          View Startup Matches
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Step 3: Track Analytics */}
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400">
+                        3
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Step 3: Track Your Investment Activity
+                        </h3>
+                        <p className="text-gray-600 mb-3">
+                          Monitor your investment pipeline and performance analytics.
+                        </p>
+                        <Link 
+                          href="/app/investors/analytics"
+                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium inline-block"
+                        >
+                          View Analytics
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">Profile Settings</h3>
-                      <p className="text-gray-600 mb-4">Manage your profile and account settings.</p>
+                      <p className="text-gray-600 mb-4 text-sm">Manage your investor profile and preferences.</p>
                       <Link 
                         href="/profile"
-                        className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
                       >
-                        Edit Profile
+                        Edit Profile →
                       </Link>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow">
-                      <h3 className="text-lg font-semibold mb-2">Browse Startups</h3>
-                      <p className="text-gray-600 mb-4">Discover innovative startups and their pitches.</p>
+                      <h3 className="text-lg font-semibold mb-2">Browse All Startups</h3>
+                      <p className="text-gray-600 mb-4 text-sm">Discover innovative startups beyond your matches.</p>
                       <Link 
                         href="/app/startups"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-indigo-500"
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                       >
-                        Start Browsing
+                        Browse Startups →
                       </Link>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">My Watchlist</h3>
-                      <p className="text-gray-600 mb-4">Keep track of startups you're interested in.</p>
+                      <p className="text-gray-600 mb-4 text-sm">Keep track of startups you're interested in.</p>
                       <Link 
                         href="/watchlist"
-                        className="bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600"
+                        className="text-emerald-600 hover:text-emerald-800 font-medium text-sm"
                       >
-                        View Watchlist
+                        View Watchlist →
                       </Link>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">Messages</h3>
-                      <p className="text-gray-600 mb-4">Connect with founders and discuss opportunities.</p>
+                      <p className="text-gray-600 mb-4 text-sm">Connect with founders and discuss opportunities.</p>
+                      <span className="text-gray-400 text-sm">Coming Soon</span>
+                    </div>
+                  </div>
+
+                  {/* Matching System Preview */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900">Smart Matching System</h2>
                       <Link 
-                        href="/messages"
-                        className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        href="/thesis"
+                        className="text-[#E64E1B] hover:text-[#d63d0f] font-medium text-sm"
                       >
-                        Open Messages
+                        Get Started →
                       </Link>
+                    </div>
+                    <p className="text-gray-600 mb-6">
+                      Our AI-powered matching system connects you with startups based on your specific investment criteria.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-2">Multi-Factor Scoring</h3>
+                        <p className="text-sm text-gray-600">
+                          Matches based on industry, stage, funding, location, traction, and team quality.
+                        </p>
+                      </div>
+                      
+                      <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-3">
+                          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-2">Real-Time Updates</h3>
+                        <p className="text-sm text-gray-600">
+                          Get notified instantly when new startups match your investment criteria.
+                        </p>
+                      </div>
+                      
+                      <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
+                          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-2">Quality Filtering</h3>
+                        <p className="text-sm text-gray-600">
+                          Advanced filters ensure you only see high-quality, relevant opportunities.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -19,27 +19,20 @@ export async function GET(
       .select(`
         id,
         title,
-        tagline,
         content,
-        sector,
-        location,
-        stage,
+        pitch_type,
         funding_ask,
         upvote_count,
-        status,
         created_at,
         updated_at,
         video_url,
-        deck_url,
-        one_pager_url,
+        slide_url,
         startups:startup_id (
           id,
           name,
           logo_url,
           website_url,
           country,
-          founded_year,
-          team_size,
           description
         )
       `)
@@ -106,7 +99,7 @@ export async function PATCH(
 
     return NextResponse.json({ 
       pitch: updatedPitch,
-      message: body.status === 'published' ? 'Pitch published successfully!' : 'Pitch updated successfully!'
+      message: 'Pitch updated successfully!'
     })
   } catch (error) {
     console.error('Error updating pitch:', error)

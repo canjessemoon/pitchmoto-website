@@ -18,7 +18,7 @@ interface Pitch {
   pitch_type: string
   funding_ask: number | null
   startup_id: string
-  status: string
+  status: 'draft' | 'published' | 'archived'
   created_at: string
   updated_at: string
   startup: {
@@ -306,8 +306,6 @@ export default function PitchesPage() {
   }
 
   const handlePublish = async (pitch: Pitch) => {
-    if (pitch.status === 'published') return
-
     setPublishingId(pitch.id)
 
     try {
@@ -316,7 +314,10 @@ export default function PitchesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'published' })
+        body: JSON.stringify({ 
+          status: 'published',
+          updated_at: new Date().toISOString() 
+        })
       })
 
       if (!response.ok) {
@@ -376,7 +377,7 @@ export default function PitchesPage() {
                 Dashboard
               </Link>
               <span className="text-gray-700">
-                {user.profile?.full_name || user.email}
+                {user.email}
               </span>
               <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 {user.profile?.user_type || 'User'}

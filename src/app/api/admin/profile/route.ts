@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
     
     // Use admin client to bypass RLS
     const { data, error } = await supabaseAdmin
-      .from('profiles')
+      .from('user_profiles')
       .upsert({
-        id: userId,
+        user_id: userId,
         ...profileData,
         updated_at: new Date().toISOString()
       }, {
-        onConflict: 'id'
+        onConflict: 'user_id'
       })
       .select()
     
@@ -67,9 +67,9 @@ export async function GET(request: NextRequest) {
     
     // Check if profile exists using admin client
     const { data: profile, error } = await supabaseAdmin
-      .from('profiles')
+      .from('user_profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single()
     
     return NextResponse.json({

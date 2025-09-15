@@ -29,7 +29,7 @@ export const startupSchema = z.object({
   stage: z.string().min(2, 'Stage is required'),
   fundingGoal: z.number().min(1000, 'Funding goal must be at least $1,000'),
   country: z.string().optional(),
-  website: z.string().url('Invalid website URL').optional(),
+  website: z.string().url('Invalid website URL').optional().or(z.literal('')),
 })
 
 // Pitch validation schemas

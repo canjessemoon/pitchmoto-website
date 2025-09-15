@@ -4,31 +4,33 @@ import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { MATCHING_CONFIG, validateThesisWeights } from '@/lib/matching'
+import { MATCHING_CONFIG } from '@/lib/matching'
+import { INVESTOR_STAGES } from '@/lib/stages'
+import { getCountryOptions, getCountryName } from '@/lib/countries'
 
 // Validation schema
 const thesisSchema = z.object({
-  min_funding_ask: z.number().min(0).default(100000),
-  max_funding_ask: z.number().min(0).default(10000000),
-  preferred_industries: z.array(z.string()).default([]),
-  preferred_stages: z.array(z.string()).default([]),
-  preferred_locations: z.array(z.string()).default([]),
-  min_equity_percentage: z.number().min(0).max(100).default(5),
-  max_equity_percentage: z.number().min(0).max(100).default(25),
-  industry_weight: z.number().min(0).max(1).default(0.25),
-  stage_weight: z.number().min(0).max(1).default(0.20),
-  funding_weight: z.number().min(0).max(1).default(0.15),
-  location_weight: z.number().min(0).max(1).default(0.10),
-  traction_weight: z.number().min(0).max(1).default(0.20),
-  team_weight: z.number().min(0).max(1).default(0.10),
-  keywords: z.array(z.string()).default([]),
-  exclude_keywords: z.array(z.string()).default([])
+  min_funding_ask: z.number().min(0),
+  max_funding_ask: z.number().min(0),
+  preferred_industries: z.array(z.string()),
+  preferred_stages: z.array(z.string()),
+  countries: z.array(z.string()),
+  no_location_pref: z.boolean(),
+  remote_ok: z.boolean(),
+  keywords: z.array(z.string()),
+  exclude_keywords: z.array(z.string()),
+  industry_weight: z.number().min(0).max(1),
+  stage_weight: z.number().min(0).max(1),
+  funding_weight: z.number().min(0).max(1),
+  location_weight: z.number().min(0).max(1),
+  traction_weight: z.number().min(0).max(1),
+  team_weight: z.number().min(0).max(1)
 }).refine(
   (data) => data.min_funding_ask <= data.max_funding_ask,
   { message: "Minimum funding must be less than maximum funding", path: ["max_funding_ask"] }
 ).refine(
-  (data) => data.min_equity_percentage <= data.max_equity_percentage,
-  { message: "Minimum equity must be less than maximum equity", path: ["max_equity_percentage"] }
+  (data) => data.no_location_pref || data.countries.length > 0,
+  { message: "Either select 'No location preference' or choose at least one country", path: ["countries"] }
 )
 
 type ThesisFormData = z.infer<typeof thesisSchema>
@@ -63,9 +65,9 @@ export default function InvestmentThesisWizard({
       max_funding_ask: 10000000,
       preferred_industries: [],
       preferred_stages: [],
-      preferred_locations: [],
-      min_equity_percentage: 5,
-      max_equity_percentage: 25,
+      countries: [],
+      no_location_pref: false,
+      remote_ok: true,
       industry_weight: 0.25,
       stage_weight: 0.20,
       funding_weight: 0.15,
@@ -268,81 +270,36 @@ export default function InvestmentThesisWizard({
             {/* Stages */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Stages
+                Preferred Investment Stages
               </label>
               <Controller
                 name="preferred_stages"
                 control={control}
                 render={({ field }) => (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {MATCHING_CONFIG.STAGES.map(stage => (
-                      <label key={stage} className="flex items-center space-x-2 cursor-pointer">
+                  <div className="space-y-3">
+                    {INVESTOR_STAGES.map(stage => (
+                      <label key={stage.value} className="flex items-start space-x-3 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50">
                         <input
                           type="checkbox"
-                          checked={field.value.includes(stage)}
+                          checked={field.value.includes(stage.value)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              field.onChange([...field.value, stage])
+                              field.onChange([...field.value, stage.value])
                             } else {
-                              field.onChange(field.value.filter(s => s !== stage))
+                              field.onChange(field.value.filter(s => s !== stage.value))
                             }
                           }}
-                          className="rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
+                          className="mt-1 rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
                         />
-                        <span className="text-sm">{stage}</span>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{stage.label}</div>
+                          <div className="text-sm text-gray-600 mt-1">{stage.description}</div>
+                        </div>
                       </label>
                     ))}
                   </div>
                 )}
               />
-            </div>
-
-            {/* Equity Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Minimum Equity %
-                </label>
-                <Controller
-                  name="min_equity_percentage"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={field.value}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#E64E1B] focus:border-[#E64E1B]"
-                    />
-                  )}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maximum Equity %
-                </label>
-                <Controller
-                  name="max_equity_percentage"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={field.value}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#E64E1B] focus:border-[#E64E1B]"
-                    />
-                  )}
-                />
-                {errors.max_equity_percentage && (
-                  <p className="text-red-500 text-sm mt-1">{errors.max_equity_percentage.message}</p>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -509,30 +466,84 @@ export default function InvestmentThesisWizard({
             {/* Location Preferences */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location Preferences (Optional)
+                Geographic Preferences
               </label>
+              <p className="text-sm text-gray-500 mb-4">
+                Pick the countries you invest in. We match on the startup's country.
+              </p>
+              
+              {/* No location preference toggle */}
               <Controller
-                name="preferred_locations"
+                name="no_location_pref"
                 control={control}
                 render={({ field }) => (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {['San Francisco', 'New York', 'Los Angeles', 'Boston', 'Austin', 'Seattle', 'Remote'].map(location => (
-                      <label key={location} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={field.value.includes(location)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              field.onChange([...field.value, location])
-                            } else {
-                              field.onChange(field.value.filter(l => l !== location))
-                            }
-                          }}
-                          className="rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
-                        />
-                        <span className="text-sm">{location}</span>
-                      </label>
-                    ))}
+                  <div className="mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
+                      />
+                      <span className="text-sm font-medium">No location preference</span>
+                    </label>
+                    <p className="text-xs text-gray-500 ml-6">Ignore geography in matching</p>
+                  </div>
+                )}
+              />
+
+              {/* Country selector - disabled if no location preference */}
+              <Controller
+                name="countries"
+                control={control}
+                render={({ field }) => (
+                  <div className={watch('no_location_pref') ? 'opacity-50 pointer-events-none' : ''}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Countries
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+                      {getCountryOptions().map(country => (
+                        <label key={country.value} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={field.value.includes(country.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                field.onChange([...field.value, country.value])
+                              } else {
+                                field.onChange(field.value.filter(c => c !== country.value))
+                              }
+                            }}
+                            className="rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
+                            disabled={watch('no_location_pref')}
+                          />
+                          <span className="text-sm">{country.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.countries && (
+                      <p className="text-red-500 text-sm mt-1">{errors.countries.message}</p>
+                    )}
+                  </div>
+                )}
+              />
+
+              {/* Remote/Distributed OK */}
+              <Controller
+                name="remote_ok"
+                control={control}
+                render={({ field }) => (
+                  <div className="mt-4">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="rounded border-gray-300 text-[#E64E1B] focus:ring-[#E64E1B]"
+                      />
+                      <span className="text-sm">Remote / Distributed OK</span>
+                    </label>
+                    <p className="text-xs text-gray-500 ml-6">I invest in remote-first teams</p>
                   </div>
                 )}
               />
@@ -553,13 +564,6 @@ export default function InvestmentThesisWizard({
                     {formatCurrency(watch('min_funding_ask'))} - {formatCurrency(watch('max_funding_ask'))}
                   </p>
                 </div>
-                
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Equity Range</h4>
-                  <p className="text-sm text-gray-600">
-                    {watch('min_equity_percentage')}% - {watch('max_equity_percentage')}%
-                  </p>
-                </div>
               </div>
 
               {watch('preferred_industries').length > 0 && (
@@ -571,10 +575,32 @@ export default function InvestmentThesisWizard({
 
               {watch('preferred_stages').length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Preferred Stages</h4>
-                  <p className="text-sm text-gray-600">{watch('preferred_stages').join(', ')}</p>
+                  <h4 className="font-medium text-gray-900 mb-2">Preferred Investment Stages</h4>
+                  <p className="text-sm text-gray-600">
+                    {watch('preferred_stages').map(stageValue => {
+                      const stage = INVESTOR_STAGES.find(s => s.value === stageValue)
+                      return stage?.label || stageValue
+                    }).join(', ')}
+                  </p>
                 </div>
               )}
+
+              {/* Location Preferences Review */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Geographic Preferences</h4>
+                {watch('no_location_pref') ? (
+                  <p className="text-sm text-gray-600">No location preference - Global</p>
+                ) : watch('countries').length > 0 ? (
+                  <p className="text-sm text-gray-600">
+                    {watch('countries').map(code => getCountryName(code)).join(', ')}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No countries selected</p>
+                )}
+                {watch('remote_ok') && (
+                  <p className="text-xs text-green-600 mt-1">✓ Remote/Distributed teams welcome</p>
+                )}
+              </div>
 
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Scoring Weights</h4>

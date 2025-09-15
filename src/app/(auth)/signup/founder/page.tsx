@@ -87,14 +87,14 @@ export default function FounderSignUpPage() {
       } else {
         // Signup successful
         console.log('Signup successful:', result.data?.user?.id)
-        alert('Account created successfully! Please check your email to verify your account before signing in.')
-        router.push('/signin')
+        alert('Account created successfully! Click OK to get your verification code.')
+        router.push(`/request-code?email=${encodeURIComponent(formData.email)}`)
       }
     } catch (error: any) {
       if (error.message === 'Signup timeout') {
         // Even if it times out, the signup might have worked
-        alert('Account creation is taking longer than expected. Please check your email for a verification link, or try signing in.')
-        router.push('/signin')
+        alert('Account creation is taking longer than expected. Please check your email for a verification code, or try signing in.')
+        router.push(`/request-code?email=${encodeURIComponent(formData.email)}`)
       } else if (error.errors) {
         const fieldErrors: Partial<SignUpData> = {}
         error.errors.forEach((err: any) => {

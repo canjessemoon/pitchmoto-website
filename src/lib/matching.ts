@@ -1,4 +1,5 @@
 import { Database } from '@/types/database'
+import { mapFounderStageToInvestor, getInvestorStages } from '@/lib/stages'
 
 // Type definitions for better type safety
 export type InvestorThesis = Database['public']['Tables']['investor_theses']['Row']
@@ -37,17 +38,7 @@ export const MATCHING_CONFIG = {
     'Manufacturing',
     'Other'
   ],
-  STAGES: [
-    'Idea',
-    'MVP',
-    'Pre-seed',
-    'Seed',
-    'Series A',
-    'Series B',
-    'Series C+',
-    'Growth',
-    'IPO Ready'
-  ],
+  STAGES: getInvestorStages(),
   INTERACTION_TYPES: [
     'view',
     'like', 
@@ -102,30 +93,24 @@ export function calculateStartupMatchScore(
     reasons.push(`Industry mismatch`)
   }
 
-  // Stage scoring - exact match or no preference
+  // Stage scoring - using mapping between founder and investor stages
   if (thesis.preferred_stages.length === 0) {
     scores.stage_score = 80 // Neutral score for no preference
-  } else if (thesis.preferred_stages.includes(startup.stage)) {
-    scores.stage_score = 100
-    reasons.push(`Perfect stage match: ${startup.stage}`)
   } else {
-    // Partial scoring for adjacent stages
-    const stageIndex = MATCHING_CONFIG.STAGES.indexOf(startup.stage)
-    const preferredIndices = thesis.preferred_stages.map(stage => 
-      MATCHING_CONFIG.STAGES.indexOf(stage)
+    // Map founder stage to investor stages
+    const mappedInvestorStages = mapFounderStageToInvestor(startup.stage)
+    
+    // Check if any of the mapped investor stages match preferred stages
+    const hasMatch = mappedInvestorStages.some(investorStage => 
+      thesis.preferred_stages.includes(investorStage)
     )
     
-    const minDistance = Math.min(...preferredIndices.map(idx => 
-      Math.abs(idx - stageIndex)
-    ))
-    
-    if (minDistance === 1) {
-      scores.stage_score = 60 // Adjacent stage
-      reasons.push(`Close stage match`)
-    } else if (minDistance === 2) {
-      scores.stage_score = 30 // Two stages away
+    if (hasMatch) {
+      scores.stage_score = 100
+      reasons.push(`Stage match: ${startup.stage} aligns with investment criteria`)
     } else {
       scores.stage_score = 0
+      reasons.push(`Stage mismatch: ${startup.stage} doesn't align with preferred investment stages`)
     }
   }
 
@@ -149,25 +134,22 @@ export function calculateStartupMatchScore(
     if (ratio > 0.5) reasons.push(`Funding slightly above target`)
   }
 
-  // Location scoring - simplified string matching
-  if (thesis.preferred_locations.length === 0) {
-    scores.location_score = 90 // Neutral score for no preference
-  } else {
-    const startupLocation = startup.location || 
-      startup.profiles?.location || 
-      ''
+  // Location scoring - country-based matching
+  if (thesis.no_location_pref) {
+    scores.location_score = 100 // No location preference - match all countries
+  } else if (thesis.countries && thesis.countries.length > 0) {
+    const startupCountry = startup.country_code || startup.country || ''
+    const countryMatch = thesis.countries.includes(startupCountry)
     
-    const locationMatch = thesis.preferred_locations.some((loc: string) => 
-      startupLocation.toLowerCase().includes(loc.toLowerCase()) ||
-      loc.toLowerCase().includes(startupLocation.toLowerCase())
-    )
-    
-    if (locationMatch) {
+    if (countryMatch) {
       scores.location_score = 100
-      reasons.push(`Location match`)
+      reasons.push(`Country match`)
     } else {
-      scores.location_score = 40 // Partial score for location flexibility
+      scores.location_score = 0
+      reasons.push(`Country mismatch`)
     }
+  } else {
+    scores.location_score = 90 // Neutral score if no countries specified
   }
 
   // Traction scoring - based on funding progress and metrics

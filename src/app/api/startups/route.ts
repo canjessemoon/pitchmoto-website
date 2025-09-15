@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json()
     console.log('API route: Request body:', body)
+    console.log('API route: funding_goal value:', body.funding_goal, 'type:', typeof body.funding_goal)
     
     const { 
       founder_id,
@@ -92,9 +93,10 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!founder_id || !name || !tagline || !description || !industry || !stage || !funding_goal) {
+    if (!founder_id || !name || !tagline || !description || !industry || !stage || !funding_goal || funding_goal <= 0) {
+      console.log('Validation failed:', { founder_id, name, tagline, description, industry, stage, funding_goal })
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields or invalid funding goal' },
         { status: 400 }
       )
     }
@@ -111,7 +113,8 @@ export async function POST(request: NextRequest) {
         description,
         industry,
         stage,
-        funding_goal,
+        funding_ask: funding_goal, // Database expects funding_ask column
+        funding_goal: funding_goal, // Also set funding_goal if it exists
         country: country || null,
         website_url: website_url || null
       })

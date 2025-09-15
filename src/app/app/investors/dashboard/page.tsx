@@ -72,9 +72,44 @@ function InvestorDashboardContent() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      loadDashboardData()
+      checkInvestorThesis()
     }
   }, [user, authLoading])
+
+  const checkInvestorThesis = async () => {
+    if (!user?.id) return
+    
+    try {
+      console.log('Checking investor thesis for user:', user.id)
+      const response = await fetch(`/api/matching/thesis?user_id=${user.id}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Thesis check response:', data)
+        
+        if (data.thesis) {
+          // Thesis exists, load dashboard normally
+          console.log('Thesis found, loading dashboard')
+          loadDashboardData()
+        } else {
+          // No thesis, redirect to create one
+          console.log('No thesis found, redirecting to /thesis')
+          router.push('/thesis')
+          return
+        }
+      } else {
+        // No thesis found, redirect to create one
+        console.log('Thesis API returned error, redirecting to /thesis')
+        router.push('/thesis')
+        return
+      }
+    } catch (error) {
+      console.error('Error checking thesis:', error)
+      // Default to thesis creation
+      router.push('/thesis')
+      return
+    }
+  }
 
   // Debug: Log user and profile data
   useEffect(() => {

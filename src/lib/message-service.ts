@@ -163,8 +163,8 @@ class SupabaseMessageService implements MessageService {
 
   async getUsers(): Promise<User[]> {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, user_type, avatar_url')
+      .from('user_profiles')
+      .select('user_id, full_name, user_type')
       .not('user_type', 'is', null)
 
     if (error) {
@@ -173,18 +173,18 @@ class SupabaseMessageService implements MessageService {
     }
 
     return (data || []).map(profile => ({
-      id: profile.id,
+      id: profile.user_id,
       name: profile.full_name || 'Unknown User',
       role: profile.user_type as 'founder' | 'investor',
-      avatarUrl: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'User')}`
+      avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'User')}`
     }))
   }
 
   async getUser(userId: string): Promise<User | null> {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, user_type, avatar_url')
-      .eq('id', userId)
+      .from('user_profiles')
+      .select('user_id, full_name, user_type')
+      .eq('user_id', userId)
       .single()
 
     if (error) {
@@ -193,10 +193,10 @@ class SupabaseMessageService implements MessageService {
     }
 
     return {
-      id: data.id,
+      id: data.user_id,
       name: data.full_name || 'Unknown User',
       role: data.user_type as 'founder' | 'investor',
-      avatarUrl: data.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.full_name || 'User')}`
+      avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.full_name || 'User')}`
     }
   }
 

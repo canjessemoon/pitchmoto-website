@@ -11,7 +11,7 @@ interface Startup {
   industry: string
   stage: string
   funding_ask: number
-  equity_offered: number
+  equity_offered?: number
   location: string
   founded_year: number
   team_size: number
@@ -367,10 +367,12 @@ export default function MatchDashboard({
                       <span className="text-gray-500">Funding:</span>
                       <span className="ml-2 font-medium">{formatCurrency(match.startup.funding_ask)}</span>
                     </div>
+                  {match.startup.equity_offered && (
                     <div>
                       <span className="text-gray-500">Equity:</span>
                       <span className="ml-2 font-medium">{match.startup.equity_offered}%</span>
                     </div>
+                  )}
                   </div>
 
                   {/* Description */}

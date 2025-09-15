@@ -9,46 +9,40 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      profiles: {
+      user_profiles: {
         Row: {
-          id: string
+          user_id: string
           email: string
           full_name: string | null
           user_type: 'founder' | 'investor' | 'admin'
           bio: string | null
-          company: string | null
           location: string | null
-          website: string | null
           linkedin_url: string | null
-          profile_picture_url: string | null
+          website: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
-          id: string
+          user_id: string
           email: string
           full_name?: string | null
           user_type: 'founder' | 'investor' | 'admin'
           bio?: string | null
-          company?: string | null
           location?: string | null
-          website?: string | null
           linkedin_url?: string | null
-          profile_picture_url?: string | null
+          website?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id?: string
+          user_id?: string
           email?: string
           full_name?: string | null
           user_type?: 'founder' | 'investor' | 'admin'
           bio?: string | null
-          company?: string | null
           location?: string | null
-          website?: string | null
           linkedin_url?: string | null
-          profile_picture_url?: string | null
+          website?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -62,7 +56,7 @@ export interface Database {
           description: string
           industry: string
           stage: string
-          funding_goal: number
+          funding_ask: number
           current_funding: number
           pitch_deck_url: string | null
           logo_url: string | null
@@ -78,7 +72,7 @@ export interface Database {
           description: string
           industry: string
           stage: string
-          funding_goal: number
+          funding_ask: number
           current_funding?: number
           pitch_deck_url?: string | null
           logo_url?: string | null
@@ -94,7 +88,7 @@ export interface Database {
           description?: string
           industry?: string
           stage?: string
-          funding_goal?: number
+          funding_ask?: number
           current_funding?: number
           pitch_deck_url?: string | null
           logo_url?: string | null
@@ -114,6 +108,7 @@ export interface Database {
           video_url: string | null
           slide_url: string | null
           upvote_count: number
+          status: 'draft' | 'published' | 'archived'
           created_at: string
           updated_at: string
         }
@@ -127,6 +122,7 @@ export interface Database {
           video_url?: string | null
           slide_url?: string | null
           upvote_count?: number
+          status?: 'draft' | 'published' | 'archived'
           created_at?: string
           updated_at?: string
         }
@@ -140,6 +136,7 @@ export interface Database {
           video_url?: string | null
           slide_url?: string | null
           upvote_count?: number
+          status?: 'draft' | 'published' | 'archived'
           created_at?: string
           updated_at?: string
         }
@@ -288,9 +285,9 @@ export interface Database {
           max_funding_ask: number
           preferred_industries: string[]
           preferred_stages: string[]
-          preferred_locations: string[]
-          min_equity_percentage: number
-          max_equity_percentage: number
+          countries: string[]
+          no_location_pref: boolean
+          remote_ok: boolean
           industry_weight: number
           stage_weight: number
           funding_weight: number
@@ -310,9 +307,9 @@ export interface Database {
           max_funding_ask?: number
           preferred_industries?: string[]
           preferred_stages?: string[]
-          preferred_locations?: string[]
-          min_equity_percentage?: number
-          max_equity_percentage?: number
+          countries?: string[]
+          no_location_pref?: boolean
+          remote_ok?: boolean
           industry_weight?: number
           stage_weight?: number
           funding_weight?: number
@@ -332,9 +329,9 @@ export interface Database {
           max_funding_ask?: number
           preferred_industries?: string[]
           preferred_stages?: string[]
-          preferred_locations?: string[]
-          min_equity_percentage?: number
-          max_equity_percentage?: number
+          countries?: string[]
+          no_location_pref?: boolean
+          remote_ok?: boolean
           industry_weight?: number
           stage_weight?: number
           funding_weight?: number
