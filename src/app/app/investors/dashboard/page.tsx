@@ -63,7 +63,7 @@ function InvestorDashboardContent() {
 
   // Helper function to get user's display name
   const getDisplayName = () => {
-    if (profile?.first_name) return profile.first_name
+    if (profile?.full_name) return profile.full_name.split(' ')[0] // Get first name from full name
     if (user?.user_metadata?.first_name) return user.user_metadata.first_name
     if (user?.user_metadata?.full_name) return user.user_metadata.full_name.split(' ')[0]
     if (user?.email) return user.email.split('@')[0]
@@ -277,7 +277,25 @@ function InvestorDashboardContent() {
                 <span className="text-[#E64E1B]">Moto</span>
               </span>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => router.push('/app/investors/dashboard')}
+                className="text-sm font-medium text-[#405B53] hover:text-[#E64E1B] transition-colors"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => router.push('/matches')}
+                className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+              >
+                Matches
+              </button>
+              <button
+                onClick={() => router.push('/thesis')}
+                className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+              >
+                Thesis
+              </button>
               <span className="text-sm text-gray-700">
                 Welcome, {getDisplayName()}
               </span>

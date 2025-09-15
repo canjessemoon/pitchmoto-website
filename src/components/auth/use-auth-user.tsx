@@ -77,25 +77,30 @@ export function useAuthUser(): AuthUser {
 
   const loadProfile = async (userId: string) => {
     try {
+      console.log('Loading profile for userId:', userId)
+      
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
         .single()
 
+      console.log('Profile query result:', { profile, profileError })
+
       if (profileError) {
         console.error('Profile error:', profileError)
-        console.error('Profile error details:', JSON.stringify(profileError, null, 2))
         console.error('Profile error code:', profileError.code)
         console.error('Profile error message:', profileError.message)
+        console.error('Profile error hint:', profileError.hint)
+        console.error('Profile error details:', profileError.details)
         
         // If profile doesn't exist (PGRST116), that's okay - user hasn't created one yet
         if (profileError.code === 'PGRST116') {
-          console.log('No profile found for user, will create one on update')
+          console.log('No profile found for user - this should be created during signup')
           setProfile(null)
         } else {
-          console.error('Profile error:', profileError)
-          setError(`Failed to load user profile: ${profileError.message || 'Unknown error'}`)
+          console.error('Profile query error:', profileError)
+          setError(`Failed to load user profile: ${profileError.message || profileError.code || 'Unknown error'}`)
         }
       } else {
         setProfile(profile)

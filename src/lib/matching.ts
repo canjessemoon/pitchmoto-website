@@ -1,5 +1,6 @@
 import { Database } from '@/types/database'
 import { mapFounderStageToInvestor, getInvestorStages } from '@/lib/stages'
+import { INDUSTRIES } from '@/lib/utils'
 
 // Type definitions for better type safety
 export type InvestorThesis = Database['public']['Tables']['investor_theses']['Row']
@@ -23,21 +24,7 @@ export const MATCHING_CONFIG = {
     MEDIUM: 50,
     LOW: 0
   },
-  INDUSTRIES: [
-    'Technology',
-    'Healthcare',
-    'Finance',
-    'E-commerce',
-    'Education',
-    'Real Estate',
-    'Food & Beverage',
-    'Transportation',
-    'Energy',
-    'Entertainment',
-    'Agriculture',
-    'Manufacturing',
-    'Other'
-  ],
+  INDUSTRIES,
   STAGES: getInvestorStages(),
   INTERACTION_TYPES: [
     'view',

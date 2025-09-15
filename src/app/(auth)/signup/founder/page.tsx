@@ -87,14 +87,14 @@ export default function FounderSignUpPage() {
       } else {
         // Signup successful
         console.log('Signup successful:', result.data?.user?.id)
-        alert('Account created successfully! Click OK to get your verification code.')
-        router.push(`/request-code?email=${encodeURIComponent(formData.email)}`)
+        alert('Account created successfully! Check your email for the verification code.')
+        router.push(`/request-code?email=${encodeURIComponent(formData.email)}&sent=true`)
       }
     } catch (error: any) {
       if (error.message === 'Signup timeout') {
         // Even if it times out, the signup might have worked
         alert('Account creation is taking longer than expected. Please check your email for a verification code, or try signing in.')
-        router.push(`/request-code?email=${encodeURIComponent(formData.email)}`)
+        router.push(`/request-code?email=${encodeURIComponent(formData.email)}&sent=true`)
       } else if (error.errors) {
         const fieldErrors: Partial<SignUpData> = {}
         error.errors.forEach((err: any) => {
@@ -245,11 +245,11 @@ export default function FounderSignUpPage() {
               <input
                 id="linkedinUrl"
                 name="linkedinUrl"
-                type="url"
+                type="text"
                 value={formData.linkedinUrl}
                 onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="https://linkedin.com/in/yourprofile"
+                placeholder="linkedin.com/in/yourprofile or full URL"
               />
             </div>
 
@@ -260,11 +260,11 @@ export default function FounderSignUpPage() {
               <input
                 id="websiteUrl"
                 name="websiteUrl"
-                type="url"
+                type="text"
                 value={formData.websiteUrl}
                 onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="https://yourwebsite.com"
+                placeholder="yourwebsite.com or https://yourwebsite.com"
               />
             </div>
           </div>

@@ -6,6 +6,7 @@ import { useAuth } from '@/components/providers'
 import { supabase } from '@/lib/supabase'
 import { storageHelpers } from '@/lib/storage-helpers'
 import { startupSchema } from '@/lib/validations'
+import { INDUSTRIES } from '@/lib/utils'
 import { ArrowLeft, ArrowRight, Building2, Upload, Check, AlertCircle } from 'lucide-react'
 import FileUpload from '@/components/ui/FileUpload'
 
@@ -19,16 +20,9 @@ interface StartupFormData {
   fundingGoal: number
   country: string
   website: string
+  tags: string[]
   logoFile: File | null
 }
-
-// Industry options
-const INDUSTRIES = [
-  'Technology', 'Healthcare', 'Finance', 'Education', 'E-commerce', 
-  'SaaS', 'Mobile Apps', 'AI/ML', 'Blockchain', 'IoT', 
-  'Gaming', 'Media', 'Real Estate', 'Transportation', 'Food & Beverage',
-  'Fashion', 'Travel', 'Sports', 'Energy', 'Other'
-]
 
 import { FOUNDER_STAGES } from '@/lib/stages'
 
@@ -51,6 +45,7 @@ export default function CreateStartupPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showStageHelper, setShowStageHelper] = useState(false)
   
   const [formData, setFormData] = useState<StartupFormData>({
     name: '',
@@ -61,6 +56,7 @@ export default function CreateStartupPage() {
     fundingGoal: 100000,
     country: '',
     website: '',
+    tags: [],
     logoFile: null
   })
 
@@ -145,7 +141,8 @@ export default function CreateStartupPage() {
           stage: formData.stage,
           funding_goal: formData.fundingGoal,
           country: formData.country || null,
-          website_url: formData.website || null
+          website_url: formData.website || null,
+          tags: formData.tags
         })
       })
 
@@ -319,24 +316,79 @@ export default function CreateStartupPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Industry *
+                  Primary Industry *
                 </label>
                 <select
                   value={formData.industry}
                   onChange={(e) => updateFormData('industry', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
                 >
-                  <option value="">Select your industry</option>
+                  <option value="">Select your primary industry</option>
                   {INDUSTRIES.map((industry) => (
                     <option key={industry} value={industry}>{industry}</option>
                   ))}
                 </select>
               </div>
 
+              {/* Cross-Industry Tags */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Current Stage *
+                  Cross-Industry Tags <span className="text-gray-500">(Optional)</span>
                 </label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Type a tag and press Enter (e.g., AI/ML, Sustainability, B2B)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const value = e.currentTarget.value.trim()
+                        if (value && !formData.tags.includes(value) && formData.tags.length < 5) {
+                          updateFormData('tags', [...formData.tags, value])
+                          e.currentTarget.value = ''
+                        }
+                      }
+                    }}
+                  />
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => updateFormData('tags', formData.tags.filter((_, i) => i !== index))}
+                            className="ml-2 text-blue-500 hover:text-blue-700"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-gray-500 text-sm">
+                    Add tags that describe cross-industry aspects (max 5). Examples: "AI/ML", "Sustainability", "B2B", "Mobile-First"
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Current Stage *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowStageHelper(!showStageHelper)}
+                    className="text-blue-600 hover:text-blue-800 text-sm underline"
+                  >
+                    Which stage are you at?
+                  </button>
+                </div>
                 <select
                   value={formData.stage}
                   onChange={(e) => updateFormData('stage', e.target.value)}
@@ -353,6 +405,39 @@ export default function CreateStartupPage() {
                   <p className="text-blue-600 text-sm mt-2">
                     💡 {FOUNDER_STAGES.find(s => s.value === formData.stage)?.description}
                   </p>
+                )}
+                
+                {/* Stage Helper Popup */}
+                {showStageHelper && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowStageHelper(false)}>
+                    <div className="bg-white rounded-lg p-6 max-w-2xl max-h-96 overflow-y-auto m-4" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Startup Stages Guide</h3>
+                        <button 
+                          onClick={() => setShowStageHelper(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        {FOUNDER_STAGES.map((stage) => (
+                          <div key={stage.value} className="border-l-4 border-blue-500 pl-4">
+                            <h4 className="font-medium text-gray-900">{stage.label}</h4>
+                            <p className="text-gray-600 text-sm">{stage.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <button 
+                          onClick={() => setShowStageHelper(false)}
+                          className="bg-[#405B53] text-white px-4 py-2 rounded-md hover:bg-green-700"
+                        >
+                          Got it!
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers'
 import Link from 'next/link'
 import { Search, Filter, Grid, List, Clock, MapPin, Users } from 'lucide-react'
+import { INDUSTRIES, STARTUP_STAGES } from '@/lib/utils'
 
 interface Startup {
   id: string
@@ -16,6 +17,7 @@ interface Startup {
   country: string | null
   website_url: string | null
   logo_url: string | null
+  tags?: string[]
   created_at: string
 }
 
@@ -38,14 +40,6 @@ export default function StartupsPage() {
   const [selectedStage, setSelectedStage] = useState('')
   const [sortBy, setSortBy] = useState('newest') // newest, funding
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-
-  // Industry options
-  const INDUSTRIES = [
-    'Technology', 'Healthcare', 'Finance', 'Education', 'E-commerce', 
-    'SaaS', 'Mobile Apps', 'AI/ML', 'Blockchain', 'IoT', 
-    'Gaming', 'Media', 'Real Estate', 'Transportation', 'Food & Beverage',
-    'Fashion', 'Travel', 'Sports', 'Energy', 'Other'
-  ]
 
   // Stage options
   const STAGES = [
@@ -338,17 +332,35 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
             
             <p className="text-gray-600 mb-2">{startup.tagline}</p>
             
-            <div className="flex items-center text-sm text-gray-500 space-x-4 mb-2">
-              <span className="inline-flex items-center">
+            <div className="flex items-center flex-wrap gap-2 text-sm mb-2">
+              <span className="inline-flex items-center text-gray-500">
                 <Users className="h-4 w-4 mr-1" />
-                {startup.industry}
+                <span className="font-medium text-gray-700">{startup.industry}</span>
               </span>
-              <span className="inline-flex items-center">
+              
+              {/* Cross-Industry Tags */}
+              {startup.tags && startup.tags.length > 0 && startup.tags.slice(0, 3).map(tag => (
+                <span 
+                  key={tag}
+                  className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+                >
+                  {tag}
+                </span>
+              ))}
+              
+              {startup.tags && startup.tags.length > 3 && (
+                <span className="text-gray-400 text-xs">
+                  +{startup.tags.length - 3} more
+                </span>
+              )}
+              
+              <span className="inline-flex items-center text-gray-500">
                 <Clock className="h-4 w-4 mr-1" />
                 {startup.stage}
               </span>
+              
               {startup.country && (
-                <span className="inline-flex items-center">
+                <span className="inline-flex items-center text-gray-500">
                   <MapPin className="h-4 w-4 mr-1" />
                   {startup.country}
                 </span>
@@ -385,9 +397,30 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
         <p className="text-gray-600 mb-4 line-clamp-2">{startup.tagline}</p>
         
         <div className="space-y-2 mb-4">
-          <div className="flex items-center text-sm text-gray-500">
-            <Users className="h-4 w-4 mr-2" />
-            <span>{startup.industry} • {startup.stage}</span>
+          <div className="flex items-center flex-wrap gap-2 text-sm">
+            <div className="flex items-center text-gray-500">
+              <Users className="h-4 w-4 mr-1" />
+              <span className="font-medium text-gray-700">{startup.industry}</span>
+            </div>
+            
+            {/* Cross-Industry Tags */}
+            {startup.tags && startup.tags.length > 0 && startup.tags.slice(0, 2).map(tag => (
+              <span 
+                key={tag}
+                className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+              >
+                {tag}
+              </span>
+            ))}
+            
+            {startup.tags && startup.tags.length > 2 && (
+              <span className="text-gray-400 text-xs">
+                +{startup.tags.length - 2} more
+              </span>
+            )}
+            
+            <span className="text-gray-300">•</span>
+            <span className="text-gray-500">{startup.stage}</span>
           </div>
           
           {startup.country && (

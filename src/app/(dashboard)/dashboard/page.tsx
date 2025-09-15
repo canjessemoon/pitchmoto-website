@@ -77,9 +77,8 @@ function DashboardContent() {
     if (!loading && !user) {
       router.push('/signin')
     } else if (user && user.profile?.user_type === 'investor') {
-      // Investors should not be on the founder dashboard
-      // Check if they have a thesis, if not redirect to create one
-      checkInvestorThesis()
+      // Redirect investors to their dedicated dashboard
+      router.push('/app/investors/dashboard')
     } else if (user && user.profile?.user_type === 'founder') {
       fetchUserData()
     }

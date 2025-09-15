@@ -3,13 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 
 // Function to create supabase admin client with build-time protection
 function createSupabaseAdmin() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
     return null
   }
   
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SECRET_KEY
   )
 }
 
@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
       stage,
       funding_goal,
       country,
-      website_url 
+      website_url,
+      tags
     } = body
 
     // Validate required fields
@@ -117,6 +118,8 @@ export async function POST(request: NextRequest) {
         funding_goal: funding_goal, // Also set funding_goal if it exists
         country: country || null,
         website_url: website_url || null
+        // TODO: Add tags once column is added to database
+        // tags: tags || []
       })
       .select()
       .single()

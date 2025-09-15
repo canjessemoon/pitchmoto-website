@@ -8,12 +8,13 @@ export default function RequestCodePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
+  const alreadySent = searchParams.get('sent') === 'true'
   
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [codeSent, setCodeSent] = useState(false)
+  const [codeSent, setCodeSent] = useState(alreadySent) // Start as true if code was already sent
 
   const handleSendCode = async () => {
     if (!email) {
@@ -25,23 +26,21 @@ export default function RequestCodePage() {
     setError('')
 
     try {
-      console.log('Requesting OTP code for email:', email)
+      console.log('Requesting new verification code for email:', email)
       
-      // Send OTP code for existing user
-      const { data, error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false // User should already exist from signup
-        }
+      // For users who signed up but haven't verified, resend the confirmation
+      const { data, error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
       })
 
-      if (otpError) {
-        console.error('Failed to send OTP:', otpError)
-        setError(`Failed to send code: ${otpError.message}`)
+      if (resendError) {
+        console.error('Failed to resend verification:', resendError)
+        setError(`Failed to send code: ${resendError.message}`)
         return
+      } else {
+        console.log('6-digit verification code resent successfully')
       }
-
-      console.log('OTP code sent successfully')
       setCodeSent(true)
       setError('')
 
@@ -64,22 +63,37 @@ export default function RequestCodePage() {
     setError('')
 
     try {
-      console.log('Verifying OTP code:', { email, codeLength: code.length })
+      console.log('Starting verification for:', { email, code, codeLength: code.length })
       
-      // Verify the OTP code
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      // For signup verification, use type 'signup'
+      const verifyPromise = supabase.auth.verifyOtp({
         email,
         token: code,
-        type: 'email'
+        type: 'signup'
       })
+      
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Verification timeout')), 10000)
+      )
+      
+      const { data, error: verifyError } = await Promise.race([
+        verifyPromise,
+        timeoutPromise
+      ]) as any
 
       if (verifyError) {
-        console.error('OTP verification failed:', verifyError)
-        setError(`Verification failed: ${verifyError.message}`)
+        console.error('Verification failed:', verifyError)
+        if (verifyError.message.includes('expired')) {
+          setError('Verification code has expired. Please request a new one.')
+        } else if (verifyError.message.includes('invalid')) {
+          setError('Invalid verification code. Please check and try again.')
+        } else {
+          setError(`Verification failed: ${verifyError.message}`)
+        }
         return
       }
 
-      console.log('OTP verification successful', data)
+      console.log('Verification successful!', data)
       setSuccess(true)
       
       // Wait a moment then redirect
@@ -87,9 +101,13 @@ export default function RequestCodePage() {
         router.push('/app')
       }, 1500)
 
-    } catch (error) {
-      console.error('Unexpected error:', error)
-      setError('An unexpected error occurred')
+    } catch (error: any) {
+      console.error('Unexpected error during verification:', error)
+      if (error.message === 'Verification timeout') {
+        setError('Verification is taking too long. Please try again or request a new code.')
+      } else {
+        setError('An unexpected error occurred. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -130,6 +148,11 @@ export default function RequestCodePage() {
           {email && (
             <p className="mt-1 text-center text-xs text-gray-500">
               Email: {email}
+            </p>
+          )}
+          {alreadySent && (
+            <p className="mt-2 text-center text-sm text-green-600">
+              ✅ Verification email sent! Check your inbox.
             </p>
           )}
         </div>
@@ -203,6 +226,17 @@ export default function RequestCodePage() {
                 className="text-sm text-[#405B53] hover:text-[#334A42] underline"
               >
                 Resend code
+              </button>
+              <span className="mx-2 text-gray-400">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('Attempting direct signin...')
+                  router.push('/signin')
+                }}
+                className="text-sm text-[#405B53] hover:text-[#334A42] underline"
+              >
+                Try signing in instead
               </button>
             </div>
           </form>

@@ -25,7 +25,32 @@ export const authHelpers = {
         }
       })
       
-      // Don't try to create profile immediately - let the auth flow handle it
+      // If signup successful and user created, create profile immediately
+      // This ensures profile exists even if database trigger fails
+      if (data.user && !error) {
+        try {
+          const { error: profileError } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: data.user.id,
+              email: data.user.email,
+              full_name: fullName,
+              user_type: userType
+            })
+            .single()
+          
+          if (profileError) {
+            console.warn('Profile creation failed (trigger should handle this):', profileError)
+            // Don't fail the signup if profile creation fails - trigger should handle it
+          } else {
+            console.log('Profile created successfully during signup')
+          }
+        } catch (profileErr) {
+          console.warn('Profile creation error (trigger should handle this):', profileErr)
+          // Don't fail the signup if profile creation fails
+        }
+      }
+      
       return { data, error }
     } catch (err) {
       console.error('Signup error:', err)
