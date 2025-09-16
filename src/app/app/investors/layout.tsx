@@ -6,10 +6,8 @@ export default function InvestorLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main>
-        {children}
-      </main>
-    </div>
+    <>
+      {children}
+    </>
   )
 }

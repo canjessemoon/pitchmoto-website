@@ -34,6 +34,8 @@ function DashboardContent() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
   const [showSavedSuccess, setShowSavedSuccess] = useState(false)
+  const [showUpdatedSuccess, setShowUpdatedSuccess] = useState(false)
+  const [updatedStatus, setUpdatedStatus] = useState<string>('')
   const [startups, setStartups] = useState<Startup[]>([])
   const [pitches, setPitches] = useState<Pitch[]>([])
   // Remove unused loadingData state
@@ -80,7 +82,17 @@ function DashboardContent() {
       // Redirect investors to their dedicated dashboard
       router.push('/app/investors/dashboard')
     } else if (user && user.profile?.user_type === 'founder') {
+      // Founders go to their dashboard
       fetchUserData()
+    } else if (user && !user.profile) {
+      // No profile found - this is a bug that needs fixing
+      console.error('User has no profile! This should not happen.', { 
+        userId: user.id, 
+        email: user.email 
+      })
+      // For now, show an error or redirect to profile setup
+      // TODO: Create a proper profile setup flow
+      fetchUserData() // Temporary: allow access but log the issue
     }
   }, [user, loading, router, fetchUserData])
 
@@ -122,13 +134,15 @@ function DashboardContent() {
     }
   }
 
-  // Handle saved parameter client-side only
+  // Handle saved/updated parameters client-side only
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') return
     
     const urlParams = new URLSearchParams(window.location.search)
     const saved = urlParams.get('saved')
+    const updated = urlParams.get('updated')
+    const status = urlParams.get('status')
     
     if (saved === 'true') {
       setShowSavedSuccess(true)
@@ -140,6 +154,21 @@ function DashboardContent() {
       // Hide the success message after 5 seconds
       setTimeout(() => {
         setShowSavedSuccess(false)
+      }, 5000)
+    }
+    
+    if (updated === 'true') {
+      setShowUpdatedSuccess(true)
+      setUpdatedStatus(status || 'draft')
+      // Remove the parameters from URL after showing the message
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('updated')
+      newUrl.searchParams.delete('status')
+      router.replace(newUrl.pathname + newUrl.search)
+      
+      // Hide the success message after 5 seconds
+      setTimeout(() => {
+        setShowUpdatedSuccess(false)
       }, 5000)
     }
   }, [router])
@@ -181,7 +210,7 @@ function DashboardContent() {
                 ↻ Refresh
               </button>
               <span className="text-gray-700">
-                Welcome, {user.profile?.first_name ? `${user.profile.first_name} ${user.profile.last_name}` : user.email}
+                Welcome, {user.profile?.full_name || user.email}
               </span>
               <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 {user.profile?.user_type || 'User'}
@@ -199,7 +228,7 @@ function DashboardContent() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Success Message */}
+        {/* Success Messages */}
         {showSavedSuccess && (
           <div className="mb-6 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg">
             <div className="flex items-center">
@@ -208,6 +237,19 @@ function DashboardContent() {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 Your pitch has been saved successfully! You can edit it anytime.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showUpdatedSuccess && (
+          <div className="mb-6 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="text-blue-800">
+                <svg className="h-5 w-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Your pitch has been updated and saved as {updatedStatus === 'published' ? 'published' : 'draft'}!
               </div>
             </div>
           </div>
@@ -306,17 +348,25 @@ function DashboardContent() {
                             {pitches.map((pitch) => (
                               <div key={pitch.id} className="bg-gray-50 p-3 rounded border">
                                 <div className="flex justify-between items-start">
-                                  <div>
+                                  <div className="flex-1">
                                     <h4 className="font-medium text-gray-900">{pitch.title}</h4>
                                     <p className="text-sm text-gray-600">Startup: {pitch.startup.name}</p>
                                   </div>
-                                  <span className={`text-xs px-2 py-1 rounded ${
-                                    pitch.status === 'published' 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-yellow-100 text-yellow-700'
-                                  }`}>
-                                    {pitch.status === 'published' ? 'Published' : 'Draft'}
-                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      pitch.status === 'published' 
+                                        ? 'bg-green-100 text-green-700' 
+                                        : 'bg-yellow-100 text-yellow-700'
+                                    }`}>
+                                      {pitch.status === 'published' ? 'Published' : 'Draft'}
+                                    </span>
+                                    <Link 
+                                      href={`/edit-pitch/${pitch.id}`}
+                                      className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50"
+                                    >
+                                      Edit
+                                    </Link>
+                                  </div>
                                 </div>
                               </div>
                             ))}

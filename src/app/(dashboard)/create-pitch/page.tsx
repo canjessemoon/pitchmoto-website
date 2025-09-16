@@ -408,16 +408,23 @@ export default function CreatePitchPage() {
 
           {/* Step 3: File Uploads */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
+            <div className="space-y-8">
+              <div className="text-center mb-8">
                 <h2 className="text-xl font-semibold text-gray-900">Upload Pitch Materials</h2>
-                <p className="text-gray-600 mt-1">Upload your deck, video, and supporting materials</p>
+                <p className="text-gray-600 mt-1">Upload your pitch materials in order of importance</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pitch Deck <span className="text-gray-500">(PDF - Recommended)</span>
-                </label>
+              {/* Step 1: Pitch Deck */}
+              <div className="border border-blue-200 rounded-lg p-6 bg-blue-50/50">
+                <div className="flex items-center mb-4">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-semibold mr-3">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Pitch Deck</h3>
+                    <p className="text-blue-600 text-sm font-medium">📊 Most Important - Upload your investor deck</p>
+                  </div>
+                </div>
                 <FileUpload
                   onUpload={async (file) => {
                     updateFormData('deckFile', file)
@@ -425,7 +432,7 @@ export default function CreatePitchPage() {
                   }}
                   accept="application/pdf"
                   maxSize={50 * 1024 * 1024} // 50MB
-                  uploadText="Upload Pitch Deck (PDF)"
+                  uploadText="📎 Upload Pitch Deck (PDF)"
                   validate={(file) => {
                     if (file.type !== 'application/pdf') {
                       return { valid: false, error: 'Please upload a PDF file' }
@@ -433,54 +440,87 @@ export default function CreatePitchPage() {
                     return { valid: true, error: null }
                   }}
                 />
-                <p className="text-gray-500 text-sm mt-1">
-                  Upload your investor pitch deck (PDF format, max 50MB)
+                <p className="text-gray-600 text-sm mt-2">
+                  📋 Your main investor presentation (PDF format, max 50MB)
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Pitch Video <span className="text-gray-500">(Option 1: Link - Recommended)</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.videoUrl}
-                  onChange={(e) => updateFormData('videoUrl', e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
-                />
-                <p className="text-gray-500 text-sm mt-1 mb-4">
-                  <strong>Recommended:</strong> Share a link to your video pitch on YouTube, Vimeo, or other platforms
-                </p>
+              {/* Step 2: Pitch Video */}
+              <div className="border border-green-200 rounded-lg p-6 bg-green-50/50">
+                <div className="flex items-center mb-4">
+                  <div className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-semibold mr-3">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Pitch Video</h3>
+                    <p className="text-green-600 text-sm font-medium">🎥 Highly Recommended - Share your video pitch</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🔗 Video Link <span className="text-green-600 font-medium">(Recommended)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.videoUrl}
+                      onChange={(e) => updateFormData('videoUrl', e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    <p className="text-gray-600 text-sm mt-1">
+                      ✨ Best option: Share a YouTube, Vimeo, or Loom link to your pitch video
+                    </p>
+                  </div>
 
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <span className="text-gray-500">Option 2: Upload Video File</span>
-                </label>
-                <FileUpload
-                  onUpload={async (file) => {
-                    updateFormData('videoFile', file)
-                    return { data: { url: 'preview' }, error: null }
-                  }}
-                  accept="video/mp4,video/webm,video/quicktime"
-                  maxSize={500 * 1024 * 1024} // 500MB
-                  uploadText="Upload Pitch Video"
-                  validate={(file) => {
-                    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime']
-                    if (!validTypes.includes(file.type)) {
-                      return { valid: false, error: 'Please upload MP4, WebM, or QuickTime video' }
-                    }
-                    return { valid: true, error: null }
-                  }}
-                />
-                <p className="text-gray-500 text-sm mt-1">
-                  Upload a video file (MP4, WebM, or MOV format, max 500MB)
-                </p>
+                  {/* Minimized file upload option */}
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700 list-none">
+                      <div className="flex items-center">
+                        <span className="text-xs mr-2">📁</span>
+                        <span>Or upload video file instead</span>
+                        <svg className="w-4 h-4 ml-2 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </summary>
+                    <div className="mt-3 pl-6 border-l-2 border-gray-200">
+                      <FileUpload
+                        onUpload={async (file) => {
+                          updateFormData('videoFile', file)
+                          return { data: { url: 'preview' }, error: null }
+                        }}
+                        accept="video/mp4,video/webm,video/quicktime"
+                        maxSize={500 * 1024 * 1024} // 500MB
+                        uploadText="📹 Upload Video File"
+                        validate={(file) => {
+                          const validTypes = ['video/mp4', 'video/webm', 'video/quicktime']
+                          if (!validTypes.includes(file.type)) {
+                            return { valid: false, error: 'Please upload MP4, WebM, or QuickTime video' }
+                          }
+                          return { valid: true, error: null }
+                        }}
+                      />
+                      <p className="text-gray-500 text-xs mt-1">
+                        MP4, WebM, or MOV format, max 500MB (slower upload, not recommended)
+                      </p>
+                    </div>
+                  </details>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  One-Pager <span className="text-gray-500">(Optional)</span>
-                </label>
+              {/* Step 3: One-Pager */}
+              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50/50">
+                <div className="flex items-center mb-4">
+                  <div className="flex items-center justify-center w-8 h-8 bg-gray-600 text-white rounded-full text-sm font-semibold mr-3">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">One-Pager</h3>
+                    <p className="text-gray-600 text-sm">📄 Optional - Executive summary document</p>
+                  </div>
+                </div>
                 <FileUpload
                   onUpload={async (file) => {
                     updateFormData('onePagerFile', file)
@@ -488,7 +528,7 @@ export default function CreatePitchPage() {
                   }}
                   accept="application/pdf"
                   maxSize={10 * 1024 * 1024} // 10MB
-                  uploadText="Upload One-Pager (PDF)"
+                  uploadText="📄 Upload One-Pager (PDF)"
                   validate={(file) => {
                     if (file.type !== 'application/pdf') {
                       return { valid: false, error: 'Please upload a PDF file' }
@@ -496,8 +536,8 @@ export default function CreatePitchPage() {
                     return { valid: true, error: null }
                   }}
                 />
-                <p className="text-gray-500 text-sm mt-1">
-                  Upload a one-page summary (PDF format, max 10MB)
+                <p className="text-gray-600 text-sm mt-2">
+                  📝 One-page startup summary (PDF format, max 10MB)
                 </p>
               </div>
 

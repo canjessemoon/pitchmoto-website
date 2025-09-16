@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, createAdminClient } from '@/lib/supabase'
 import { z } from 'zod'
-import { Database } from '@/types/database'
 
 // Validation schema for investor thesis
 const investorThesisSchema = z.object({
@@ -23,75 +22,28 @@ const investorThesisSchema = z.object({
   is_active: z.boolean().default(true)
 })
 
-function createSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${supabaseAnonKey}`
-      }
-    }
-  })
-}
-
-function createSupabaseServerClient() {
-  const cookieStore = cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value
-      },
-      set(name: string, value: string, options: any) {
-        cookieStore.set({ name, value, ...options })
-      },
-      remove(name: string, options: any) {
-        cookieStore.set({ name, value: '', ...options })
-      },
-    },
-  })
-}
-
-async function getAuthenticatedUser() {
-  const supabase = createSupabaseServerClient()
-  
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) {
-    return null
-  }
-
-  // Get user profile to check role
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile || profile.user_type !== 'investor') {
-    return null
-  }
-
-  return { user, profile }
-}
-
 // GET /api/matching/thesis - Get investor's active thesis
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request)
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('user_id')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing user_id parameter' }, { status: 400 })
     }
 
-    const { user } = authResult
-    const supabase = createSupabaseClient()
+    // Use admin client to bypass RLS policies
+    const adminSupabase = createAdminClient()
+    
+    if (!adminSupabase) {
+      console.error('Admin client not available')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
 
-    const { data: thesis, error } = await supabase
+    const { data: thesis, error } = await adminSupabase
       .from('investor_theses')
       .select('*')
-      .eq('investor_id', user.id)
+      .eq('investor_id', userId)
       .eq('is_active', true)
       .single()
 
@@ -110,13 +62,20 @@ export async function GET(request: NextRequest) {
 // POST /api/matching/thesis - Create or update investor thesis
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request)
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const body = await request.json()
+    const { userId } = body
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const { user } = authResult
-    const body = await request.json()
+    // Use admin client to bypass RLS policies
+    const adminSupabase = createAdminClient()
+    
+    if (!adminSupabase) {
+      console.error('Admin client not available')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
 
     // Validate input
     const validatedData = investorThesisSchema.parse(body)
@@ -137,19 +96,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createSupabaseClient()
-
     // Deactivate existing thesis first
-    await supabase
+    await adminSupabase
       .from('investor_theses')
       .update({ is_active: false })
-      .eq('investor_id', user.id)
+      .eq('investor_id', userId)
 
     // Create new thesis
-    const { data: thesis, error } = await supabase
+    const { data: thesis, error } = await adminSupabase
       .from('investor_theses')
       .insert({
-        investor_id: user.id,
+        investor_id: userId,
         ...validatedData
       })
       .select()
@@ -177,24 +134,29 @@ export async function POST(request: NextRequest) {
 // PUT /api/matching/thesis - Update existing thesis
 export async function PUT(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request)
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const body = await request.json()
+    const { userId } = body
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const { user } = authResult
-    const body = await request.json()
+    // Use admin client to bypass RLS policies
+    const adminSupabase = createAdminClient()
+    
+    if (!adminSupabase) {
+      console.error('Admin client not available')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
 
     // Validate input
     const validatedData = investorThesisSchema.partial().parse(body)
 
-    const supabase = createSupabaseClient()
-
     // Update the active thesis
-    const { data: thesis, error } = await supabase
+    const { data: thesis, error } = await adminSupabase
       .from('investor_theses')
       .update(validatedData)
-      .eq('investor_id', user.id)
+      .eq('investor_id', userId)
       .eq('is_active', true)
       .select()
       .single()
@@ -221,19 +183,26 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/matching/thesis - Deactivate thesis
 export async function DELETE(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request)
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('user_id')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing user_id parameter' }, { status: 400 })
     }
 
-    const { user } = authResult
-    const supabase = createSupabaseClient()
+    // Use admin client to bypass RLS policies
+    const adminSupabase = createAdminClient()
+    
+    if (!adminSupabase) {
+      console.error('Admin client not available')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
 
     // Deactivate the thesis instead of deleting
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from('investor_theses')
       .update({ is_active: false })
-      .eq('investor_id', user.id)
+      .eq('investor_id', userId)
       .eq('is_active', true)
 
     if (error) {

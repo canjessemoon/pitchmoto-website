@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/components/providers'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { 
@@ -25,6 +26,7 @@ interface InvestorNavigationProps {
 export function InvestorNavigation({ user, userProfile }: InvestorNavigationProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigation = [
@@ -49,8 +51,24 @@ export function InvestorNavigation({ user, userProfile }: InvestorNavigationProp
   ]
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      console.log('Starting investor sign out process...')
+      await signOut()
+      console.log('Investor sign out successful, redirecting...')
+      router.push('/')
+    } catch (error) {
+      console.error('Investor sign out error:', error)
+      // Fallback: try direct supabase signout
+      try {
+        await supabase.auth.signOut()
+        console.log('Fallback investor sign out successful')
+        router.push('/')
+      } catch (fallbackError) {
+        console.error('Fallback investor sign out also failed:', fallbackError)
+        // Force refresh as last resort
+        window.location.href = '/'
+      }
+    }
   }
 
   return (
@@ -98,7 +116,7 @@ export function InvestorNavigation({ user, userProfile }: InvestorNavigationProp
               <div className="text-[#8C948B] text-xs">Investor Account</div>
             </div>
             
-            <Link href="/profile">
+            <Link href="/app/investors/profile">
               <Button
                 variant="ghost"
                 size="sm"
@@ -163,7 +181,7 @@ export function InvestorNavigation({ user, userProfile }: InvestorNavigationProp
                 </div>
                 
                 <Link
-                  href="/profile"
+                  href="/app/investors/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium text-[#8C948B] hover:text-white hover:bg-[#8C948B]/20"
                 >

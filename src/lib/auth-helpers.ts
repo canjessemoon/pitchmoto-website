@@ -28,25 +28,62 @@ export const authHelpers = {
       // If signup successful and user created, create profile immediately
       // This ensures profile exists even if database trigger fails
       if (data.user && !error) {
+        console.log('Signup successful, creating profile for user:', data.user.id)
+        
+        // Add a small delay to ensure user is fully committed to auth.users table
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
         try {
-          const { error: profileError } = await supabase
-            .from('user_profiles')
-            .insert({
-              user_id: data.user.id,
+          // Call API route to create profile using server-side admin client
+          const response = await fetch('/api/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: data.user.id,
               email: data.user.email,
-              full_name: fullName,
-              user_type: userType
+              fullName,
+              userType
             })
-            .single()
-          
-          if (profileError) {
-            console.warn('Profile creation failed (trigger should handle this):', profileError)
-            // Don't fail the signup if profile creation fails - trigger should handle it
+          })
+
+          const result = await response.json()
+
+          if (!response.ok) {
+            console.error('Profile creation failed:', result.error)
+
+            // If it's a foreign key constraint error, try again after a delay
+            if (result.code === '23503') {
+              console.log('Retrying profile creation...')
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
+              const retryResponse = await fetch('/api/create-profile', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  userId: data.user.id,
+                  email: data.user.email,
+                  fullName,
+                  userType
+                })
+              })
+
+              const retryResult = await retryResponse.json()
+
+              if (!retryResponse.ok) {
+                console.error('Profile creation retry failed:', retryResult)
+              } else {
+                console.log('Profile created successfully on retry')
+              }
+            }
           } else {
-            console.log('Profile created successfully during signup')
+            console.log('Profile created successfully')
           }
         } catch (profileErr) {
-          console.warn('Profile creation error (trigger should handle this):', profileErr)
+          console.error('Profile creation exception during signup:', profileErr)
           // Don't fail the signup if profile creation fails
         }
       }

@@ -7,23 +7,8 @@ import { InvestmentThesisWizard } from '@/components/matching'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 
-interface ThesisFormData {
-  min_funding_ask: number
-  max_funding_ask: number
-  preferred_industries: string[]
-  preferred_stages: string[]
-  preferred_locations: string[]
-  min_equity_percentage: number
-  max_equity_percentage: number
-  industry_weight: number
-  stage_weight: number
-  funding_weight: number
-  location_weight: number
-  traction_weight: number
-  team_weight: number
-  keywords: string[]
-  exclude_keywords: string[]
-}
+// Import the type from the wizard component to ensure consistency
+import type { ThesisFormData } from '@/components/matching/InvestmentThesisWizard'
 
 export default function InvestmentThesisPage() {
   const router = useRouter()
@@ -108,7 +93,10 @@ export default function InvestmentThesisPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(thesisData)
+        body: JSON.stringify({
+          ...thesisData,
+          userId: user.id
+        })
       })
 
       const result = await response.json()
@@ -118,9 +106,17 @@ export default function InvestmentThesisPage() {
         
         // Trigger match recomputation
         try {
+          // Get the session token for authentication
+          const { data: { session } } = await supabase.auth.getSession()
+          const headers: HeadersInit = { 'Content-Type': 'application/json' }
+          
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`
+          }
+          
           await fetch('/api/matching/matches', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ recompute: true })
           })
         } catch (err) {

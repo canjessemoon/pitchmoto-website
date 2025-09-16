@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { profileHelpers } from '@/lib/auth-helpers'
 
 export function Navigation() {
-  const { user, loading } = useAuth()
+  const { user, loading, signOut } = useAuth()
   const router = useRouter()
 
   const handleGoToApp = async () => {
@@ -30,8 +30,24 @@ export function Navigation() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      console.log('Starting sign out process...')
+      await signOut()
+      console.log('Sign out successful, redirecting...')
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Fallback: try direct supabase signout
+      try {
+        await supabase.auth.signOut()
+        console.log('Fallback sign out successful')
+        router.push('/')
+      } catch (fallbackError) {
+        console.error('Fallback sign out also failed:', fallbackError)
+        // Force refresh as last resort
+        window.location.href = '/'
+      }
+    }
   }
 
   return (

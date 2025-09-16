@@ -117,9 +117,8 @@ export async function POST(request: NextRequest) {
         funding_ask: funding_goal, // Database expects funding_ask column
         funding_goal: funding_goal, // Also set funding_goal if it exists
         country: country || null,
-        website_url: website_url || null
-        // TODO: Add tags once column is added to database
-        // tags: tags || []
+        website_url: website_url || null,
+        tags: tags || []
       })
       .select()
       .single()

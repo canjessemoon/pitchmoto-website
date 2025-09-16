@@ -60,6 +60,7 @@ function InvestorDashboardContent() {
     avg_match_score: 0
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [hasThesis, setHasThesis] = useState(false)
 
   // Helper function to get user's display name
   const getDisplayName = () => {
@@ -72,15 +73,23 @@ function InvestorDashboardContent() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      checkInvestorThesis()
+      checkProfileAndThesis()
     }
   }, [user, authLoading])
 
-  const checkInvestorThesis = async () => {
+  const checkProfileAndThesis = async () => {
     if (!user?.id) return
     
     try {
-      console.log('Checking investor thesis for user:', user.id)
+      // First check if profile is complete
+      if (!profile?.full_name || !profile?.bio) {
+        console.log('Profile incomplete, redirecting to profile setup')
+        router.push('/app/investors/profile')
+        return
+      }
+
+      // Profile is complete, now check thesis
+      console.log('Profile complete, checking investor thesis for user:', user.id)
       const response = await fetch(`/api/matching/thesis?user_id=${user.id}`)
       
       if (response.ok) {
@@ -88,26 +97,26 @@ function InvestorDashboardContent() {
         console.log('Thesis check response:', data)
         
         if (data.thesis) {
-          // Thesis exists, load dashboard normally
+          // Thesis exists, load dashboard with matches
           console.log('Thesis found, loading dashboard')
+          setHasThesis(true)
           loadDashboardData()
         } else {
-          // No thesis, redirect to create one
-          console.log('No thesis found, redirecting to /thesis')
-          router.push('/thesis')
-          return
+          // No thesis, show dashboard with empty state
+          console.log('No thesis found, showing empty state')
+          setHasThesis(false)
+          setIsLoading(false)
         }
       } else {
-        // No thesis found, redirect to create one
-        console.log('Thesis API returned error, redirecting to /thesis')
-        router.push('/thesis')
-        return
+        // No thesis found, show empty state
+        console.log('Thesis API returned error, showing empty state')
+        setHasThesis(false)
+        setIsLoading(false)
       }
     } catch (error) {
-      console.error('Error checking thesis:', error)
-      // Default to thesis creation
-      router.push('/thesis')
-      return
+      console.error('Error checking profile/thesis:', error)
+      setHasThesis(false)
+      setIsLoading(false)
     }
   }
 
@@ -141,11 +150,15 @@ function InvestorDashboardContent() {
           score: Math.floor(Math.random() * 30 + 70), // Random score 70-100
           match_reasons: getRandomMatchReasons()
         }))
-        setMatches(realMatches)
+        
+        // Sort matches by score (highest first)
+        const sortedMatches = realMatches.sort((a, b) => b.score - a.score)
+        setMatches(sortedMatches)
+        
         setAnalytics({
           total_matches: realMatches.length,
-          total_views: Math.floor(Math.random() * 50 + 20),
-          total_contacts: Math.floor(Math.random() * 10 + 5),
+          total_views: 0, // Clear static number
+          total_contacts: 0, // Clear static number
           avg_match_score: Math.floor(realMatches.reduce((sum, m) => sum + m.score, 0) / realMatches.length)
         })
       } else {
@@ -218,8 +231,8 @@ function InvestorDashboardContent() {
 
   const getMockAnalytics = (): Analytics => ({
     total_matches: 23,
-    total_views: 45,
-    total_contacts: 8,
+    total_views: 0, // Clear static number
+    total_contacts: 0, // Clear static number
     avg_match_score: 78
   })
 
@@ -265,6 +278,126 @@ function InvestorDashboardContent() {
     )
   }
 
+  // Show empty state if no thesis
+  if (!hasThesis) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Navigation */}
+        <nav className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <span className="text-xl font-bold">
+                  <span className="text-[#405B53]">Pitch</span>
+                  <span className="text-[#E64E1B]">Moto</span>
+                </span>
+              </div>
+              <div className="flex items-center space-x-6">
+                <button
+                  onClick={() => router.push('/app/investors/dashboard')}
+                  className="text-sm font-medium text-[#405B53] hover:text-[#E64E1B] transition-colors"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => router.push('/app/investors/matches')}
+                  className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+                >
+                  Matches
+                </button>
+                <button
+                  onClick={() => router.push('/app/investors/thesis')}
+                  className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+                >
+                  Thesis
+                </button>
+                <button
+                  onClick={() => router.push('/app/investors/profile')}
+                  className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+                >
+                  Profile
+                </button>
+                <span className="text-sm text-gray-700">
+                  Welcome, {getDisplayName()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/auth/signin')}
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Empty State Content */}
+        <div className="max-w-4xl mx-auto px-4 py-12">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Welcome to PitchMoto, {getDisplayName()}!
+            </h1>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              You're all set up with your profile. Now let's create your investment thesis 
+              so we can start finding startup matches that align with your investment criteria.
+            </p>
+            
+            <div className="bg-white rounded-lg shadow-sm p-8 max-w-2xl mx-auto">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Create Your Investment Thesis</h2>
+              <p className="text-gray-600 mb-6">
+                Your investment thesis helps us understand what types of startups you're looking for. 
+                We'll use this to show you the most relevant opportunities on the platform.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 mb-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Industry preferences</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Investment stage & size</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Geographic preferences</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Scoring criteria weights</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => router.push('/app/investors/thesis')}
+                className="w-full bg-[#E64E1B] hover:bg-[#d63f0d] text-white"
+                size="lg"
+              >
+                Create Investment Thesis
+              </Button>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500">
+                Need to update your profile information? 
+                <button 
+                  onClick={() => router.push('/app/investors/profile')}
+                  className="text-[#E64E1B] hover:underline ml-1"
+                >
+                  Edit Profile
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -285,16 +418,22 @@ function InvestorDashboardContent() {
                 Dashboard
               </button>
               <button
-                onClick={() => router.push('/matches')}
+                onClick={() => router.push('/app/investors/matches')}
                 className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
               >
                 Matches
               </button>
               <button
-                onClick={() => router.push('/thesis')}
+                onClick={() => router.push('/app/investors/thesis')}
                 className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
               >
                 Thesis
+              </button>
+              <button
+                onClick={() => router.push('/app/investors/profile')}
+                className="text-sm font-medium text-gray-700 hover:text-[#E64E1B] transition-colors"
+              >
+                Profile
               </button>
               <span className="text-sm text-gray-700">
                 Welcome, {getDisplayName()}

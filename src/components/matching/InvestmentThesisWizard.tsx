@@ -35,8 +35,11 @@ const thesisSchema = z.object({
 
 type ThesisFormData = z.infer<typeof thesisSchema>
 
+// Export the type for use in other components
+export type { ThesisFormData }
+
 interface InvestmentThesisWizardProps {
-  onComplete: (thesis: ThesisFormData) => void
+  onComplete: (thesis: ThesisFormData) => void | Promise<void>
   onCancel: () => void
   existingThesis?: Partial<ThesisFormData>
   isLoading?: boolean
@@ -61,8 +64,8 @@ export default function InvestmentThesisWizard({
   } = useForm<ThesisFormData>({
     resolver: zodResolver(thesisSchema),
     defaultValues: {
-      min_funding_ask: 100000,
-      max_funding_ask: 10000000,
+      min_funding_ask: 250000,
+      max_funding_ask: 5000000,
       preferred_industries: [],
       preferred_stages: [],
       countries: [],
@@ -102,6 +105,31 @@ export default function InvestmentThesisWizard({
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
     return `$${value.toLocaleString()}`
+  }
+
+  // Funding range helper functions for better granularity
+  const getFundingSteps = () => [
+    0, 25000, 50000, 75000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000,
+    600000, 700000, 800000, 900000, 1000000, 1250000, 1500000, 1750000, 2000000, 2500000, 3000000,
+    3500000, 4000000, 4500000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000, 12500000,
+    15000000, 20000000, 25000000, 30000000, 40000000, 50000000, 75000000, 100000000
+  ]
+
+  const getClosestFundingValue = (targetValue: number) => {
+    const steps = getFundingSteps()
+    return steps.reduce((prev, curr) => 
+      Math.abs(curr - targetValue) < Math.abs(prev - targetValue) ? curr : prev
+    )
+  }
+
+  const getFundingSliderValue = (fundingValue: number) => {
+    const steps = getFundingSteps()
+    return steps.indexOf(fundingValue)
+  }
+
+  const getFundingFromSliderValue = (sliderValue: number) => {
+    const steps = getFundingSteps()
+    return steps[sliderValue] || 0
   }
 
   const addKeyword = (type: 'keywords' | 'exclude_keywords') => {
@@ -178,60 +206,159 @@ export default function InvestmentThesisWizard({
             <h3 className="text-xl font-semibold text-[#405B53] mb-4">Investment Preferences</h3>
             
             {/* Funding Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Minimum Funding Ask
-                </label>
-                <Controller
-                  name="min_funding_ask"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="50000000"
-                        step="100000"
-                        value={field.value}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="text-center mt-2 text-lg font-semibold text-[#405B53]">
-                        {formatCurrency(field.value)}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Funding Ask
+                  </label>
+                  <Controller
+                    name="min_funding_ask"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="space-y-3">
+                        {/* Number Input */}
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100000000"
+                            step="25000"
+                            value={field.value}
+                            onChange={(e) => {
+                              const newValue = Math.max(0, parseInt(e.target.value) || 0)
+                              field.onChange(newValue)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                            placeholder="Enter amount"
+                          />
+                          <div className="absolute right-3 top-2 text-gray-500 text-sm">USD</div>
+                        </div>
+                        
+                        {/* Slider */}
+                        <input
+                          type="range"
+                          min="0"
+                          max={getFundingSteps().length - 1}
+                          step="1"
+                          value={getFundingSliderValue(field.value)}
+                          onChange={(e) => {
+                            const newValue = getFundingFromSliderValue(parseInt(e.target.value))
+                            field.onChange(newValue)
+                          }}
+                          className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        />
+                        
+                        <div className="text-center text-lg font-semibold text-[#405B53]">
+                          {formatCurrency(field.value)}
+                        </div>
                       </div>
-                    </div>
+                    )}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Maximum Funding Ask
+                  </label>
+                  <Controller
+                    name="max_funding_ask"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="space-y-3">
+                        {/* Number Input */}
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100000000"
+                            step="25000"
+                            value={field.value}
+                            onChange={(e) => {
+                              const newValue = Math.max(0, parseInt(e.target.value) || 0)
+                              field.onChange(newValue)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                            placeholder="Enter amount"
+                          />
+                          <div className="absolute right-3 top-2 text-gray-500 text-sm">USD</div>
+                        </div>
+                        
+                        {/* Slider */}
+                        <input
+                          type="range"
+                          min="0"
+                          max={getFundingSteps().length - 1}
+                          step="1"
+                          value={getFundingSliderValue(field.value)}
+                          onChange={(e) => {
+                            const newValue = getFundingFromSliderValue(parseInt(e.target.value))
+                            field.onChange(newValue)
+                          }}
+                          className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        />
+                        
+                        <div className="text-center text-lg font-semibold text-[#405B53]">
+                          {formatCurrency(field.value)}
+                        </div>
+                      </div>
+                    )}
+                  />
+                  {errors.max_funding_ask && (
+                    <p className="text-red-500 text-sm mt-1">{errors.max_funding_ask.message}</p>
                   )}
-                />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maximum Funding Ask
-                </label>
-                <Controller
-                  name="max_funding_ask"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <input
-                        type="range"
-                        min="100000"
-                        max="100000000"
-                        step="100000"
-                        value={field.value}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="text-center mt-2 text-lg font-semibold text-[#405B53]">
-                        {formatCurrency(field.value)}
-                      </div>
-                    </div>
-                  )}
-                />
-                {errors.max_funding_ask && (
-                  <p className="text-red-500 text-sm mt-1">{errors.max_funding_ask.message}</p>
-                )}
+
+              {/* Funding Range Quick Presets */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-3">💡 Quick Presets</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('min_funding_ask', 100000)
+                      setValue('max_funding_ask', 500000)
+                    }}
+                    className="px-3 py-2 text-xs bg-white border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    Pre-Seed
+                    <div className="text-blue-600">$100K - $500K</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('min_funding_ask', 500000)
+                      setValue('max_funding_ask', 2000000)
+                    }}
+                    className="px-3 py-2 text-xs bg-white border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    Seed
+                    <div className="text-blue-600">$500K - $2M</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('min_funding_ask', 2000000)
+                      setValue('max_funding_ask', 10000000)
+                    }}
+                    className="px-3 py-2 text-xs bg-white border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    Series A
+                    <div className="text-blue-600">$2M - $10M</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('min_funding_ask', 10000000)
+                      setValue('max_funding_ask', 50000000)
+                    }}
+                    className="px-3 py-2 text-xs bg-white border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    Series B+
+                    <div className="text-blue-600">$10M - $50M</div>
+                  </button>
+                </div>
               </div>
             </div>
 

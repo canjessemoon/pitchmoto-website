@@ -3,11 +3,13 @@ import { supabase } from './supabase'
 export interface UserProfile {
   user_id: string
   email: string
-  first_name?: string
-  last_name?: string
+  full_name?: string
   user_type: 'founder' | 'investor' | 'admin'
   bio?: string
-  profile_image_url?: string
+  location?: string
+  linkedin_url?: string
+  website?: string
+  profile_picture_url?: string
   created_at: string
   updated_at: string
 }
@@ -115,8 +117,50 @@ export const auth = {
         timeoutPromise
       ]) as any
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error fetching profile:', profileError)
+      if (profileError) {
+        console.error('Error fetching profile:', { 
+          error: profileError, 
+          code: profileError?.code, 
+          message: profileError?.message,
+          userId: user.id 
+        })
+        
+        // If profile doesn't exist (PGRST116), try to create it
+        if (profileError.code === 'PGRST116') {
+          console.log('Profile not found, attempting to create one...')
+          try {
+            const userMetadata = user.user_metadata || {}
+            const { data: newProfile, error: createError } = await supabase
+              .from('user_profiles')
+              .insert({
+                user_id: user.id,
+                email: user.email,
+                full_name: userMetadata.full_name || userMetadata.name || null,
+                user_type: userMetadata.user_type || 'founder' // Default to founder if not specified
+              })
+              .select()
+              .single()
+            
+            if (createError) {
+              console.error('Failed to create profile:', createError)
+              return {
+                id: user.id,
+                email: user.email!,
+                profile: undefined
+              }
+            }
+            
+            console.log('Profile created successfully:', newProfile)
+            return {
+              id: user.id,
+              email: user.email!,
+              profile: newProfile
+            }
+          } catch (createErr) {
+            console.error('Exception creating profile:', createErr)
+          }
+        }
+        
         // Return user without profile if profile fetch fails
         return {
           id: user.id,

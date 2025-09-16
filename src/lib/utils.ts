@@ -96,6 +96,7 @@ export const INDUSTRIES = [
   'Real Estate',
   'Transportation',
   'Energy',
+  'Cleantech',
   'Manufacturing',
   'Entertainment',
   'Travel',

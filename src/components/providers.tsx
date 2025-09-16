@@ -87,8 +87,21 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleSignOut = async () => {
-    await auth.signOut()
-    setUser(null)
+    try {
+      console.log('Auth provider: Starting sign out...')
+      const { error } = await auth.signOut()
+      if (error) {
+        console.error('Auth sign out error:', error)
+        throw error
+      }
+      console.log('Auth provider: Sign out successful')
+      setUser(null)
+    } catch (error) {
+      console.error('Auth provider: Sign out failed:', error)
+      // Even if there's an error, clear the user state
+      setUser(null)
+      throw error
+    }
   }
 
   return (
