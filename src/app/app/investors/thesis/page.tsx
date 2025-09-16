@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { InvestmentThesisWizard } from '@/components/matching'
@@ -10,7 +10,7 @@ import { ArrowLeft, CheckCircle } from 'lucide-react'
 // Import the type from the wizard component to ensure consistency
 import type { ThesisFormData } from '@/components/matching/InvestmentThesisWizard'
 
-export default function InvestmentThesisPage() {
+function InvestmentThesisContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isEdit = searchParams.get('edit') === 'true'
@@ -251,5 +251,20 @@ export default function InvestmentThesisPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function InvestmentThesisPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#405B53] mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <InvestmentThesisContent />
+    </Suspense>
   )
 }

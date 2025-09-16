@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { InvestmentThesisWizard } from '@/components/matching'
@@ -267,7 +267,16 @@ function ThesisPageContent() {
 export default function InvestmentThesisPage() {
   return (
     <AuthGuard requiredUserType="investor">
-      <ThesisPageContent />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#405B53] mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading...</p>
+          </div>
+        </div>
+      }>
+        <ThesisPageContent />
+      </Suspense>
     </AuthGuard>
   )
 }
