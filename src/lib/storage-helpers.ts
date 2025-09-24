@@ -27,6 +27,22 @@ export const storageHelpers = {
     const fileExt = file.name.split('.').pop()
     const fileName = `${startupId}/logo.${fileExt}`
     
+    console.log('🔍 Uploading logo:', {
+      fileName,
+      fileSize: file.size,
+      fileType: file.type,
+      startupId
+    })
+    
+    // STEP 2: Runtime auth check before upload
+    const { data: session } = await supabase.auth.getSession()
+    console.table({
+      HAS_TOKEN: !!session?.session?.access_token,
+      AUD: session?.session?.user?.aud,
+      SUB: session?.session?.user?.id,
+      TOKEN_PREVIEW: session?.session?.access_token ? `${session.session.access_token.substring(0, 20)}...` : 'NONE'
+    })
+    
     const { data, error } = await supabase.storage
       .from('logo')
       .upload(fileName, file, {
@@ -34,7 +50,12 @@ export const storageHelpers = {
         upsert: true
       })
     
-    if (error) return { data: null, error }
+    if (error) {
+      console.error('❌ Logo upload error:', error)
+      return { data: null, error }
+    }
+    
+    console.log('✅ Logo upload success:', data)
     
     const { data: { publicUrl } } = supabase.storage
       .from('logo')
@@ -43,10 +64,30 @@ export const storageHelpers = {
     return { data: { path: data.path, publicUrl }, error: null }
   },
 
-  // Upload pitch deck (PDF)
+  // Upload pitch deck (PDF) - Test with SDK now that buckets policy is fixed
   uploadPitchDeck: async (file: File, startupId: string) => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${startupId}/pitch-deck.${fileExt}`
+    
+    console.log('🔍 Uploading pitch deck:', {
+      fileName,
+      fileSize: file.size,
+      fileType: file.type,
+      startupId
+    })
+    
+    // Check auth session and log token prefix for comparison
+    const { data: session } = await supabase.auth.getSession()
+    const token = session?.session?.access_token
+    
+    if (!token) {
+      console.error('❌ No auth token found')
+      return { data: null, error: new Error('No authentication token') }
+    }
+    
+    console.log('🔑 Token prefix:', token.substring(0, 24))
+    console.log('👤 User ID:', session?.session?.user?.id)
+    console.log('🚀 Using Supabase SDK (now that buckets policy is fixed)')
     
     const { data, error } = await supabase.storage
       .from('pitch-decks')
@@ -55,16 +96,16 @@ export const storageHelpers = {
         upsert: true
       })
     
-    if (error) return { data: null, error }
+    if (error) {
+      console.error('❌ Upload error:', error)
+      return { data: null, error }
+    }
     
-    // Get signed URL for private access
-    const { data: signedUrlData, error: urlError } = await supabase.storage
-      .from('pitch-decks')
-      .createSignedUrl(fileName, 3600) // 1 hour expiry
+    console.log('✅ Pitch deck upload success:', data)
     
-    if (urlError) return { data: null, error: urlError }
-    
-    return { data: { path: data.path, signedUrl: signedUrlData.signedUrl }, error: null }
+    // Return just the file path - signed URLs will be generated on-demand via API
+    console.log('🔄 Returning upload result with path:', data.path)
+    return { data: { path: data.path }, error: null }
   },
 
   // Upload pitch video

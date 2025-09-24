@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/components/providers'
 import { ArrowLeft, Save, X, Check, AlertCircle, FileText, Upload } from 'lucide-react'
 import FileUpload from '@/components/ui/FileUpload'
+import { storageHelpers, fileValidation } from '@/lib/storage-helpers'
 
 // Form data interface
 interface PitchFormData {
@@ -15,8 +16,10 @@ interface PitchFormData {
   pitch_type: 'slide' | 'video' | 'text'
   video_url: string
   status: 'draft' | 'published'
+  slide_url?: string | null
   deckFile: File | null
-  onePagerFile: File | null
+  // Store the uploaded file path (not signed URL to avoid expiration)
+  uploadedDeckPath?: string | null
 }
 
 // Startup interface for selection
@@ -28,6 +31,22 @@ interface Startup {
   stage: string
 }
 
+// Helper function to generate fresh signed URL for pitch deck
+const getSignedPitchDeckUrl = async (filePath: string): Promise<string | null> => {
+  try {
+    const response = await fetch(`/api/storage/signed-url?bucket=pitch-decks&path=${encodeURIComponent(filePath)}&expires=3600`)
+    if (!response.ok) {
+      console.error('Failed to get signed URL:', response.statusText)
+      return null
+    }
+    const data = await response.json()
+    return data.signedUrl
+  } catch (error) {
+    console.error('Error getting signed URL:', error)
+    return null
+  }
+}
+
 export default function EditPitchPage() {
   const { user } = useAuth()
   const router = useRouter()
@@ -35,6 +54,7 @@ export default function EditPitchPage() {
   const pitchId = params.id as string
   
   const [isLoading, setIsLoading] = useState(true)
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [startups, setStartups] = useState<Startup[]>([])
@@ -48,8 +68,9 @@ export default function EditPitchPage() {
     pitch_type: 'text',
     video_url: '',
     status: 'draft',
+    slide_url: null,
     deckFile: null,
-    onePagerFile: null
+    uploadedDeckPath: null
   })
 
   const loadUserStartups = useCallback(async () => {
@@ -74,22 +95,25 @@ export default function EditPitchPage() {
     if (!pitchId || !user?.id) return
     
     try {
-      const response = await fetch(`/api/pitches/${pitchId}`)
+      // Include user ID in query for ownership verification
+      const response = await fetch(`/api/pitches/${pitchId}?user_id=${user.id}`)
       if (response.ok) {
         const data = await response.json()
         const pitch = data.pitch
         
         setFormData({
-          startup_id: pitch.startups?.id || '',
+          startup_id: pitch.startup?.id || '',
           title: pitch.title || '',
           content: pitch.content || '',
           funding_ask: pitch.funding_ask || 100000,
           pitch_type: pitch.pitch_type || 'text',
           video_url: pitch.video_url || '',
           status: pitch.status || 'draft',
+          slide_url: pitch.slide_url || null,
           deckFile: null, // Files need to be re-uploaded
-          onePagerFile: null
+          uploadedDeckPath: null // Reset uploaded paths
         })
+        setIsDataLoaded(true)
       } else {
         console.error('Failed to load pitch')
         router.push('/dashboard')
@@ -121,6 +145,35 @@ export default function EditPitchPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Handle pitch deck upload
+  const handlePitchDeckUpload = async (file: File) => {
+    console.log('🔄 Starting pitch deck upload:', file.name)
+    try {
+      if (!formData.startup_id) {
+        throw new Error('Please select a startup first')
+      }
+
+      console.log('📤 Calling storageHelpers.uploadPitchDeck...')
+      const result = await storageHelpers.uploadPitchDeck(file, formData.startup_id)
+      console.log('📦 Upload result:', result)
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Upload failed')
+      }
+
+      // Store the file and the file path (not signed URL)
+      console.log('💾 Updating form data with path:', result.data?.path)
+      updateFormData('deckFile', file)
+      updateFormData('uploadedDeckPath', result.data?.path || null)
+      
+      console.log('✅ Upload completed successfully')
+      return { data: result.data, error: null }
+    } catch (error: any) {
+      console.error('❌ Pitch deck upload error:', error)
+      return { data: null, error: { message: error.message || 'Upload failed' } }
+    }
+  }
+
   const validateForm = () => {
     return (
       formData.title.length >= 5 && 
@@ -144,11 +197,29 @@ export default function EditPitchPage() {
 
       // Determine pitch type based on files/video
       let pitchType: 'slide' | 'video' | 'text' = 'text' // default
-      if (formData.deckFile) {
+      if (formData.deckFile || formData.uploadedDeckPath) {
         pitchType = 'slide'
       } else if (formData.video_url.trim() !== '') {
         pitchType = 'video'
       }
+
+      // Prepare the update data
+      const updateData: any = {
+        user_id: user.id, // Include user ID for authentication
+        startup_id: formData.startup_id,
+        title: formData.title,
+        content: formData.content,
+        pitch_type: pitchType,
+        funding_ask: formData.funding_ask,
+        video_url: formData.video_url,
+        status: formData.status // Don't change status, keep current status
+      }
+
+      // Include uploaded file paths if available - convert to signed URL when needed
+      if (formData.uploadedDeckPath) {
+        updateData.slide_url = formData.uploadedDeckPath // Store path, not signed URL
+      }
+      // Note: one_pager_url field doesn't exist in schema yet, so we skip it for now
 
       // Update pitch via API route (always save as current status, don't change it)
       const response = await fetch(`/api/pitches/${pitchId}`, {
@@ -156,16 +227,7 @@ export default function EditPitchPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          startup_id: formData.startup_id,
-          title: formData.title,
-          content: formData.content,
-          pitch_type: pitchType,
-          funding_ask: formData.funding_ask,
-          video_url: formData.video_url,
-          // Don't change status, keep current status
-          status: formData.status
-        })
+        body: JSON.stringify(updateData)
       })
 
       if (!response.ok) {
@@ -202,11 +264,29 @@ export default function EditPitchPage() {
 
       // Determine pitch type based on files/video
       let pitchType: 'slide' | 'video' | 'text' = 'text' // default
-      if (formData.deckFile) {
+      if (formData.deckFile || formData.uploadedDeckPath) {
         pitchType = 'slide'
       } else if (formData.video_url.trim() !== '') {
         pitchType = 'video'
       }
+
+      // Prepare the update data
+      const updateData: any = {
+        user_id: user.id, // Include user ID for authentication
+        startup_id: formData.startup_id,
+        title: formData.title,
+        content: formData.content,
+        pitch_type: pitchType,
+        funding_ask: formData.funding_ask,
+        video_url: formData.video_url,
+        status: 'published' // Force publish
+      }
+
+      // Include uploaded file paths if available - convert to signed URL when needed
+      if (formData.uploadedDeckPath) {
+        updateData.slide_url = formData.uploadedDeckPath // Store path, not signed URL
+      }
+      // Note: one_pager_url field doesn't exist in schema yet, so we skip it for now
 
       // Update pitch and publish
       const response = await fetch(`/api/pitches/${pitchId}`, {
@@ -214,15 +294,7 @@ export default function EditPitchPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          startup_id: formData.startup_id,
-          title: formData.title,
-          content: formData.content,
-          pitch_type: pitchType,
-          funding_ask: formData.funding_ask,
-          video_url: formData.video_url,
-          status: 'published' // Force publish
-        })
+        body: JSON.stringify(updateData)
       })
 
       if (!response.ok) {
@@ -413,48 +485,40 @@ export default function EditPitchPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Pitch Deck <span className="text-gray-500">(PDF - Optional)</span>
               </label>
+              
+              {/* Show existing pitch deck if available */}
+              {isDataLoaded && (
+                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">Current Pitch Deck:</p>
+                  {formData.slide_url ? (
+                    <button
+                      onClick={async () => {
+                        const signedUrl = await getSignedPitchDeckUrl(formData.slide_url!)
+                        if (signedUrl) {
+                          window.open(signedUrl, '_blank', 'noopener,noreferrer')
+                        } else {
+                          alert('Unable to access pitch deck. Please try again.')
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-700 underline text-sm bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      📎 View Current Pitch Deck
+                    </button>
+                  ) : (
+                    <p className="text-gray-600 text-sm">No pitch deck currently uploaded</p>
+                  )}
+                </div>
+              )}
+              
               <FileUpload
-                onUpload={async (file) => {
-                  updateFormData('deckFile', file)
-                  return { data: { url: 'preview' }, error: null }
-                }}
+                onUpload={handlePitchDeckUpload}
                 accept="application/pdf"
                 maxSize={50 * 1024 * 1024} // 50MB
                 uploadText="📎 Upload New Pitch Deck (PDF)"
-                validate={(file) => {
-                  if (file.type !== 'application/pdf') {
-                    return { valid: false, error: 'Please upload a PDF file' }
-                  }
-                  return { valid: true, error: null }
-                }}
+                validate={fileValidation.validatePDF}
               />
               <p className="text-gray-500 text-sm mt-1">
                 📋 Upload a new pitch deck to replace the existing one (PDF format, max 50MB)
-              </p>
-            </div>
-
-            {/* One-Pager Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                One-Pager <span className="text-gray-500">(Optional)</span>
-              </label>
-              <FileUpload
-                onUpload={async (file) => {
-                  updateFormData('onePagerFile', file)
-                  return { data: { url: 'preview' }, error: null }
-                }}
-                accept="application/pdf"
-                maxSize={10 * 1024 * 1024} // 10MB
-                uploadText="📄 Upload New One-Pager (PDF)"
-                validate={(file) => {
-                  if (file.type !== 'application/pdf') {
-                    return { valid: false, error: 'Please upload a PDF file' }
-                  }
-                  return { valid: true, error: null }
-                }}
-              />
-              <p className="text-gray-500 text-sm mt-1">
-                📝 Upload a new one-page summary to replace the existing one (PDF format, max 10MB)
               </p>
             </div>
           </div>

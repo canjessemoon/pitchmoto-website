@@ -31,22 +31,24 @@ export function Navigation() {
 
   const handleSignOut = async () => {
     try {
-      console.log('Starting sign out process...')
+      console.log('Navigation: Starting sign out process...')
+      console.log('Current user:', user?.email)
+      
+      // Call the auth provider's signOut function
       await signOut()
-      console.log('Sign out successful, redirecting...')
-      router.push('/')
+      console.log('Navigation: Sign out successful, redirecting...')
+      
     } catch (error) {
-      console.error('Sign out error:', error)
-      // Fallback: try direct supabase signout
+      console.error('Navigation: Sign out error:', error)
+      // Fallback: try direct supabase signout and force redirect
       try {
         await supabase.auth.signOut()
-        console.log('Fallback sign out successful')
-        router.push('/')
+        console.log('Navigation: Fallback sign out successful')
       } catch (fallbackError) {
-        console.error('Fallback sign out also failed:', fallbackError)
-        // Force refresh as last resort
-        window.location.href = '/'
+        console.error('Navigation: Fallback sign out also failed:', fallbackError)
       }
+      // Force redirect regardless
+      window.location.href = '/'
     }
   }
 
@@ -64,12 +66,6 @@ export function Navigation() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/discovery"
-              className="text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              Discover Startups
-            </Link>
             <Link
               href="/resources"
               className="text-gray-600 hover:text-blue-600 transition-colors"

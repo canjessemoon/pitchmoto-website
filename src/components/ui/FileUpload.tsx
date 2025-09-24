@@ -56,7 +56,7 @@ export default function FileUpload({
       } else {
         setUploadedFile({ 
           name: file.name, 
-          url: data?.publicUrl || data?.signedUrl 
+          url: data?.publicUrl || data?.signedUrl || data?.path // Support new path-only format
         })
         setError(null)
       }

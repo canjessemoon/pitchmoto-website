@@ -90,123 +90,86 @@ export default function ProfilePage() {
     setProfileMessage('')
 
     try {
-      console.log('Starting profile update for user:', user.id)
-      console.log('Profile data:', profileData)
+      console.log('🔄 Starting profile update for user:', user.id)
+      console.log('📝 Profile data:', profileData)
       
-      const updateData = {
-        user_id: user.id,
-        email: profileData.email,
-        full_name: profileData.full_name,
-        user_type: profileData.user_type,
-        bio: profileData.bio || null,
-        location: profileData.location || null,
-        linkedin_url: profileData.linkedin_url || null
+      // Use dedicated API endpoint instead of direct Supabase calls
+      const response = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          profileData: {
+            email: profileData.email,
+            full_name: profileData.full_name,
+            user_type: profileData.user_type,
+            bio: profileData.bio,
+            location: profileData.location,
+            linkedin_url: profileData.linkedin_url
+          }
+        })
+      })
+
+      console.log('📡 API response status:', response.status)
+      
+      const result = await response.json()
+      console.log('� API response:', result)
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update profile')
       }
 
-      console.log('Sending update data:', updateData)
-
-      // Use upsert to either insert or update
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .upsert(updateData, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        })
-        .select()
-
-      console.log('Upsert response:', { data, error })
-
-      if (error) {
-        console.error('Profile update error:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
-        console.error('Error message:', error.message)
-        console.error('Error code:', error.code)
+      if (result.success) {
+        console.log('✅ Profile updated successfully!')
+        setProfileMessage('✅ Profile updated successfully!')
         
-        // Try admin endpoint as fallback if regular update fails
-        console.log('Trying admin endpoint as fallback...')
-        try {
-          const adminResponse = await fetch('/api/admin/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: user.id,
-              profileData: {
-                email: profileData.email,
-                full_name: profileData.full_name,
-                user_type: profileData.user_type,
-                bio: profileData.bio,
-                location: profileData.location,
-                linkedin_url: profileData.linkedin_url
-              }
-            })
-          })
-          
-          const adminResult = await adminResponse.json()
-          console.log('Admin endpoint result:', adminResult)
-          
-          if (adminResult.success) {
-            setProfileMessage('Profile updated successfully!')
-          } else {
-            setProfileMessage(`Failed to update profile: ${adminResult.error || 'Unknown error'}`)
-          }
-        } catch (adminError) {
-          console.error('Admin endpoint error:', adminError)
-          setProfileMessage(`Failed to update profile: ${error.message || 'Unknown error'}`)
-        }
-      } else {
-        console.log('Profile updated successfully, data:', data)
-        setProfileMessage('Profile updated successfully!')
-        
-        // Refresh the profile data in the auth hook by reloading
-        if (data && data[0]) {
-          // Update local state to reflect the saved data
+        // Update local state immediately
+        if (result.data && result.data[0]) {
           setProfileData(prev => ({
             ...prev,
-            ...data[0]
+            ...result.data[0]
           }))
+          console.log('📱 Local state updated')
         }
         
-        // Reload the profile from the database to ensure sync
-        setTimeout(async () => {
-          try {
-            const { data: refreshedProfile, error: refreshError } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('user_id', user.id)
-              .single()
-            
-            if (!refreshError && refreshedProfile) {
-              setProfileData(prev => ({
-                ...prev,
-                ...refreshedProfile
-              }))
-              console.log('Profile data refreshed:', refreshedProfile)
+        // Update auth metadata (non-blocking)
+        try {
+          console.log('🔐 Updating auth metadata...')
+          const { error: authError } = await supabase.auth.updateUser({
+            data: {
+              full_name: profileData.full_name,
+              user_type: profileData.user_type
             }
-          } catch (err) {
-            console.log('Profile refresh error:', err)
+          })
+          
+          if (authError) {
+            console.error('⚠️ Auth metadata update error:', authError)
+          } else {
+            console.log('✅ Auth metadata updated successfully')
           }
-        }, 1000)
-        
-        // Also update auth user metadata
-        console.log('Updating auth metadata...')
-        const { error: authError } = await supabase.auth.updateUser({
-          data: {
-            full_name: profileData.full_name,
-            user_type: profileData.user_type
-          }
-        })
-        
-        if (authError) {
-          console.error('Auth metadata update error:', authError)
-        } else {
-          console.log('Auth metadata updated successfully')
+        } catch (authErr) {
+          console.error('⚠️ Auth update error:', authErr)
+          // Don't fail the whole operation for auth update
         }
+      } else {
+        setProfileMessage(`❌ Failed to update profile: ${result.error || 'Unknown error'}`)
       }
     } catch (err) {
-      console.error('Profile update error:', err)
-      setProfileMessage('Failed to update profile. Please try again.')
+      console.error('❌ Profile update error:', err)
+      if (err instanceof Error) {
+        if (err.message.includes('timed out')) {
+          setProfileMessage('⏱️ Profile update timed out. Please try again.')
+        } else {
+          setProfileMessage(`❌ Failed to update profile: ${err.message}`)
+        }
+      } else {
+        setProfileMessage('❌ Failed to update profile. Please try again.')
+      }
     } finally {
       setProfileLoading(false)
+      console.log('🏁 Profile update operation completed')
     }
   }
 
@@ -274,7 +237,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link
-                href="/app/investors/dashboard"
+                href="/dashboard"
                 className="text-sm text-gray-700 hover:text-gray-900"
               >
                 ← Back to Dashboard
@@ -289,13 +252,6 @@ export default function ProfilePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
           <p className="text-gray-600 mt-1">Manage your account information and preferences</p>
-          {user && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Debug Info:</strong> User ID: {user.id} | Email: {user.email}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Tab Navigation */}
@@ -493,6 +449,21 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Account Details - for support purposes */}
+        {user && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <details className="group">
+              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                Account Details
+              </summary>
+              <div className="mt-2 text-xs text-gray-400 font-mono">
+                User ID: {user.id}<br />
+                Email: {user.email}
+              </div>
+            </details>
           </div>
         )}
       </div>

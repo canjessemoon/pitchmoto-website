@@ -7,7 +7,9 @@ export const signUpSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   userType: z.enum(['founder', 'investor'], {
     message: 'Please select your role'
-  })
+  }),
+  linkedinUrl: z.string().url('Invalid LinkedIn URL').optional().or(z.literal('')),
+  websiteUrl: z.string().url('Invalid website URL').optional().or(z.literal(''))
 })
 
 export const signInSchema = z.object({

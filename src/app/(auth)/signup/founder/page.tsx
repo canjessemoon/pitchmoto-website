@@ -64,7 +64,9 @@ export default function FounderSignUpPage() {
         validatedData.email,
         validatedData.password,
         validatedData.fullName,
-        'founder'
+        'founder',
+        validatedData.linkedinUrl,
+        validatedData.websiteUrl
       )
       
       const timeoutPromise = new Promise((_, reject) => 

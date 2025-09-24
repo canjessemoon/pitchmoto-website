@@ -18,8 +18,8 @@ interface PitchFormData {
   deckFile: File | null
   videoFile: File | null
   videoUrl: string
-  onePagerFile: File | null
   rulesAccepted: boolean
+  uploadedDeckPath?: string | null
 }
 
 // Startup interface for selection
@@ -50,8 +50,8 @@ export default function CreatePitchPage() {
     deckFile: null,
     videoFile: null,
     videoUrl: '',
-    onePagerFile: null,
-    rulesAccepted: false
+    rulesAccepted: false,
+    uploadedDeckPath: null
   })
 
   const loadUserStartups = useCallback(async () => {
@@ -90,6 +90,38 @@ export default function CreatePitchPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Handle pitch deck upload
+  const handlePitchDeckUpload = async (file: File) => {
+    console.log('🔄 Starting pitch deck upload:', file.name)
+    try {
+      if (!formData.startupId) {
+        throw new Error('Please select a startup first')
+      }
+
+      console.log('📤 Calling storageHelpers.uploadPitchDeck...')
+      const result = await storageHelpers.uploadPitchDeck(file, formData.startupId)
+      console.log('📦 Upload result:', result)
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Upload failed')
+      }
+
+      // Store the file and the file path (not signed URL)
+      console.log('💾 Updating form data with path:', result.data?.path)
+      setFormData(prev => ({ 
+        ...prev, 
+        deckFile: file, 
+        uploadedDeckPath: result.data?.path || null 
+      }))
+      
+      console.log('✅ Upload completed successfully')
+      return { data: result.data, error: null }
+    } catch (error: any) {
+      console.error('❌ Pitch deck upload error:', error)
+      return { data: null, error: { message: error.message || 'Upload failed' } }
+    }
+  }
+
   const nextStep = () => {
     if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
@@ -108,7 +140,7 @@ export default function CreatePitchPage() {
                formData.fundingAsk >= 1000
       case 3:
         // At least one file should be uploaded or video URL provided
-        return formData.deckFile || formData.videoUrl.trim() !== '' || formData.onePagerFile
+        return formData.deckFile || formData.videoUrl.trim() !== ''
       case 4:
         // Review step - always valid to proceed
         return true
@@ -159,19 +191,34 @@ export default function CreatePitchPage() {
 
       console.log('Determined pitch type:', pitchType)
 
+      // Prepare pitch data
+      const pitchData: any = {
+        startup_id: formData.startupId,
+        title: formData.title,
+        content: formData.content,
+        pitch_type: pitchType,
+        funding_ask: formData.fundingAsk
+      }
+
+      // Include uploaded deck path if available
+      if (formData.uploadedDeckPath) {
+        pitchData.slide_url = formData.uploadedDeckPath
+      }
+
+      // Include video URL if provided
+      if (formData.videoUrl.trim()) {
+        pitchData.video_url = formData.videoUrl.trim()
+      }
+
+      console.log('Sending pitch data:', pitchData)
+
       // Create pitch via API route
       const response = await fetch('/api/pitches', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          startup_id: formData.startupId,
-          title: formData.title,
-          content: formData.content,
-          pitch_type: pitchType,
-          funding_ask: formData.fundingAsk
-        })
+        body: JSON.stringify(pitchData)
       })
 
       console.log('API response status:', response.status)
@@ -426,10 +473,7 @@ export default function CreatePitchPage() {
                   </div>
                 </div>
                 <FileUpload
-                  onUpload={async (file) => {
-                    updateFormData('deckFile', file)
-                    return { data: { url: 'preview' }, error: null }
-                  }}
+                  onUpload={handlePitchDeckUpload}
                   accept="application/pdf"
                   maxSize={50 * 1024 * 1024} // 50MB
                   uploadText="📎 Upload Pitch Deck (PDF)"
@@ -446,28 +490,28 @@ export default function CreatePitchPage() {
               </div>
 
               {/* Step 2: Pitch Video */}
-              <div className="border border-green-200 rounded-lg p-6 bg-green-50/50">
+              <div className="border border-blue-200 rounded-lg p-6 bg-blue-50/50">
                 <div className="flex items-center mb-4">
-                  <div className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-semibold mr-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-semibold mr-3">
                     2
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">Pitch Video</h3>
-                    <p className="text-green-600 text-sm font-medium">🎥 Highly Recommended - Share your video pitch</p>
+                    <p className="text-blue-600 text-sm font-medium">🎥 Highly Recommended - Share your video pitch</p>
                   </div>
                 </div>
                 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      🔗 Video Link <span className="text-green-600 font-medium">(Recommended)</span>
+                      🔗 Video Link <span className="text-blue-600 font-medium">(Recommended)</span>
                     </label>
                     <input
                       type="url"
                       value={formData.videoUrl}
                       onChange={(e) => updateFormData('videoUrl', e.target.value)}
                       placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-gray-600 text-sm mt-1">
                       ✨ Best option: Share a YouTube, Vimeo, or Loom link to your pitch video
@@ -510,41 +554,10 @@ export default function CreatePitchPage() {
                 </div>
               </div>
 
-              {/* Step 3: One-Pager */}
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50/50">
-                <div className="flex items-center mb-4">
-                  <div className="flex items-center justify-center w-8 h-8 bg-gray-600 text-white rounded-full text-sm font-semibold mr-3">
-                    3
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">One-Pager</h3>
-                    <p className="text-gray-600 text-sm">📄 Optional - Executive summary document</p>
-                  </div>
-                </div>
-                <FileUpload
-                  onUpload={async (file) => {
-                    updateFormData('onePagerFile', file)
-                    return { data: { url: 'preview' }, error: null }
-                  }}
-                  accept="application/pdf"
-                  maxSize={10 * 1024 * 1024} // 10MB
-                  uploadText="📄 Upload One-Pager (PDF)"
-                  validate={(file) => {
-                    if (file.type !== 'application/pdf') {
-                      return { valid: false, error: 'Please upload a PDF file' }
-                    }
-                    return { valid: true, error: null }
-                  }}
-                />
-                <p className="text-gray-600 text-sm mt-2">
-                  📝 One-page startup summary (PDF format, max 10MB)
-                </p>
-              </div>
-
-              {!formData.deckFile && !formData.videoFile && !formData.videoUrl.trim() && !formData.onePagerFile && (
+              {!formData.deckFile && !formData.videoFile && !formData.videoUrl.trim() && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                   <p className="text-amber-700 text-sm">
-                    Please upload at least one file (deck, video, or one-pager) or provide a video URL to continue.
+                    Please upload at least one file (deck or video) or provide a video URL to continue.
                   </p>
                 </div>
               )}
@@ -583,7 +596,6 @@ export default function CreatePitchPage() {
                     {formData.deckFile && <li>• Pitch Deck: {formData.deckFile.name}</li>}
                     {formData.videoFile && <li>• Video File: {formData.videoFile.name}</li>}
                     {formData.videoUrl.trim() && <li>• Video URL: {formData.videoUrl}</li>}
-                    {formData.onePagerFile && <li>• One-Pager: {formData.onePagerFile.name}</li>}
                   </ul>
                 </div>
               </div>

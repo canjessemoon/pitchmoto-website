@@ -10,7 +10,14 @@ export const authHelpers = {
     return { data, error }
   },
 
-  signUpWithEmail: async (email: string, password: string, fullName?: string, userType: 'founder' | 'investor' = 'founder') => {
+  signUpWithEmail: async (
+    email: string, 
+    password: string, 
+    fullName?: string, 
+    userType: 'founder' | 'investor' = 'founder',
+    linkedinUrl?: string,
+    websiteUrl?: string
+  ) => {
     try {
       // Use traditional signup - this creates the user with password
       const { data, error } = await supabase.auth.signUp({
@@ -44,7 +51,9 @@ export const authHelpers = {
               userId: data.user.id,
               email: data.user.email,
               fullName,
-              userType
+              userType,
+              linkedinUrl,
+              websiteUrl
             })
           })
 
@@ -67,7 +76,9 @@ export const authHelpers = {
                   userId: data.user.id,
                   email: data.user.email,
                   fullName,
-                  userType
+                  userType,
+                  linkedinUrl,
+                  websiteUrl
                 })
               })
 

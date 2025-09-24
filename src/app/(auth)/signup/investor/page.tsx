@@ -64,7 +64,9 @@ export default function InvestorSignUpPage() {
         email: formData.email,
         password: formData.password,
         fullName: formData.fullName,
-        userType: formData.userType
+        userType: formData.userType,
+        linkedinUrl: formData.linkedinUrl,
+        websiteUrl: ''  // Investors don't have websiteUrl in their form
       })
 
       // Sign up user with timeout protection
@@ -72,7 +74,9 @@ export default function InvestorSignUpPage() {
         validatedData.email,
         validatedData.password,
         validatedData.fullName,
-        'investor'
+        'investor',
+        validatedData.linkedinUrl,
+        validatedData.websiteUrl
       )
       
       const timeoutPromise = new Promise((_, reject) => 

@@ -139,6 +139,7 @@ export async function GET(request: NextRequest) {
             country
           )
         `)
+        .eq('status', 'published')  // Only show published pitches to investors
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('API: Creating pitch with data:', body)
 
-    const { startup_id, title, content, pitch_type, funding_ask } = body
+    const { startup_id, title, content, pitch_type, funding_ask, slide_url, video_url } = body
 
     // Basic validation
     if (!startup_id || !title || !content || !pitch_type) {
@@ -200,6 +201,15 @@ export async function POST(request: NextRequest) {
     // Add funding_ask if provided
     if (funding_ask) {
       insertData.funding_ask = funding_ask
+    }
+
+    // Add file URLs if provided
+    if (slide_url) {
+      insertData.slide_url = slide_url
+    }
+    
+    if (video_url) {
+      insertData.video_url = video_url
     }
 
     console.log('Inserting data:', insertData)

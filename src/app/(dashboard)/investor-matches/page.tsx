@@ -98,10 +98,9 @@ function FounderMatchSummaryContent() {
             setMatchSummary(summaryData)
             setSuggestions(generateDataQualitySuggestions(userStartup, summaryData))
           } else {
-            // Use mock data for development
-            const mockSummary = getMockMatchSummary()
-            setMatchSummary(mockSummary)
-            setSuggestions(generateDataQualitySuggestions(userStartup, mockSummary))
+            const errorText = await summaryResponse.text()
+            console.error('Match summary error:', errorText)
+            setError(`Failed to calculate investor matches: ${summaryResponse.statusText}`)
           }
         } else {
           setError('No startup found. Please create a startup profile first.')
@@ -116,44 +115,6 @@ function FounderMatchSummaryContent() {
       setIsLoading(false)
     }
   }
-
-  const getMockMatchSummary = (): MatchSummary => ({
-    total_matches: 23,
-    by_stage: {
-      'Pre-seed': 3,
-      'Seed': 8,
-      'Series A': 7,
-      'Series B': 3,
-      'Growth': 2
-    },
-    by_country: {
-      'United States': 15,
-      'Canada': 5,
-      'United Kingdom': 2,
-      'Germany': 1
-    },
-    by_sector: {
-      'Technology': 12,
-      'FinTech': 6,
-      'HealthTech': 3,
-      'CleanTech': 2
-    },
-    by_funding_range: {
-      '$100K - $500K': 4,
-      '$500K - $2M': 8,
-      '$2M - $10M': 7,
-      '$10M+': 4
-    },
-    recent_matches: 5,
-    avg_match_score: 78,
-    top_match_reasons: [
-      'Industry alignment',
-      'Stage compatibility',
-      'Geographic proximity',
-      'Funding range match',
-      'Growth potential'
-    ]
-  })
 
   const generateDataQualitySuggestions = (startup: Startup, summary: MatchSummary): DataQualitySuggestion[] => {
     const suggestions: DataQualitySuggestion[] = []

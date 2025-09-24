@@ -62,47 +62,26 @@ export function LandingPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center py-16 md:py-24">
           <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-            <span className="block">Where Startups Meet Investors</span>
-            <span className="block text-blue-600">Any Day of the Year</span>
+            <span className="block">Where startups get discovered.</span>
+            <span className="block text-blue-600">Where investors find their edge.</span>
           </h1>
           <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-            Skip the demo days and pitch events. Connect with investors and share your startup story 
-            on your timeline, your way.
+            Skip demo days and endless intros. Publish your pitch once, reach investors any time. For investors, discover startups beyond your network — structured, searchable, and ready to connect.
           </p>
           
-          {/* Email Signup */}
-          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-            <form onSubmit={handleEmailSignup} className="sm:flex w-full">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-5 py-3 border border-gray-300 shadow-sm placeholder-gray-400 focus:ring-1 focus:ring-blue-600 focus:border-blue-600 sm:max-w-xs rounded-md sm:rounded-r-none"
-                required
-              />
-              <button
-                type="submit"
-                className="mt-3 w-full px-5 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 sm:mt-0 sm:ml-0 sm:w-auto sm:flex-shrink-0 sm:rounded-l-none"
-              >
-                Get Early Access
-              </button>
-            </form>
-          </div>
-          
-          <div className="mt-6">
-            <div className="flex justify-center space-x-6">
+          <div className="mt-8">
+            <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
               <Link
                 href="/signup/founder"
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 transition-colors"
               >
-                Join as Founder →
+                Join as Founder
               </Link>
               <Link
                 href="/signup/investor"
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="inline-flex items-center justify-center px-6 py-3 border border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 transition-colors"
               >
-                Join as Investor →
+                Join as Investor
               </Link>
             </div>
           </div>
@@ -124,7 +103,7 @@ export function LandingPage() {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Create Your Profile</h3>
                   <p className="text-gray-500">
-                    Founders and investors create detailed profiles showcasing their background and interests.
+                    Founders and Investors showcase who they are and what they're looking for.
                   </p>
                 </div>
                 <div className="text-center">
@@ -133,7 +112,7 @@ export function LandingPage() {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Share Your Pitch</h3>
                   <p className="text-gray-500">
-                    Founders post compelling pitches with text, videos, or slide decks to showcase their startups.
+                    Founders upload a deck, video, or one-pager — all in one place.
                   </p>
                 </div>
                 <div className="text-center">
@@ -142,7 +121,7 @@ export function LandingPage() {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Discover & Connect</h3>
                   <p className="text-gray-500">
-                    Investors browse pitches, save favorites to their watchlist, and connect directly with promising startups.
+                    Investors browse, filter, and save startups they like.
                   </p>
                 </div>
                 <div className="text-center">
@@ -151,7 +130,7 @@ export function LandingPage() {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Build Relationships</h3>
                   <p className="text-gray-500">
-                    Foster meaningful connections through direct messaging and ongoing conversations.
+                    Messaging and watchlists turn quick connections into lasting partnerships.
                   </p>
                 </div>
               </div>
@@ -164,10 +143,10 @@ export function LandingPage() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-4">
-                Free Startup Resources
+                Pitch better, faster.
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Get access to professional templates, guides, and tools to help you create compelling pitches and grow your startup.
+                We give founders the tools to shine.
               </p>
             </div>
             
@@ -240,21 +219,24 @@ export function LandingPage() {
 
         {/* CTA Section */}
         <div className="py-16 text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-8">
-            Ready to Get Started?
+          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-4">
+            Ready to raise? Ready to invest?
           </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+            PitchMoto is where startups and investors meet — on your timeline, your way.
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/auth/signup"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500"
+              href="/signup/founder"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-indigo-500 transition-colors"
             >
-              Join PitchMoto
+              Join as Founder →
             </Link>
             <Link
-              href="/how-it-works"
-              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              href="/signup/investor"
+              className="inline-flex items-center justify-center px-6 py-3 border border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 transition-colors"
             >
-              Learn More
+              Join as Investor →
             </Link>
           </div>
         </div>

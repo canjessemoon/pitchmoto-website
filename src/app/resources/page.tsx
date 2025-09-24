@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Navigation } from '@/components/ui/navigation'
 import { Download, FileText, Video, Calculator, Presentation, MessageSquare, ExternalLink, BookOpen, Lightbulb, Target } from 'lucide-react'
 
 interface Resource {
@@ -214,36 +215,7 @@ export default function ResourcesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold">
-                <span className="text-[#405B53]">Pitch</span>
-                <span className="text-[#E64E1B]">Moto</span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-gray-500 hover:text-gray-700">
-                Home
-              </Link>
-              <Link href="/how-it-works" className="text-gray-500 hover:text-gray-700">
-                How it Works
-              </Link>
-              <Link href="/signin" className="text-gray-500 hover:text-gray-700">
-                Sign In
-              </Link>
-              <Link 
-                href="/signup"
-                className="bg-[#E64E1B] text-white px-4 py-2 rounded-lg hover:bg-orange-600"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -277,7 +249,7 @@ export default function ResourcesPage() {
                 placeholder="Search resources..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent`}
               />
             </div>
 
@@ -289,7 +261,7 @@ export default function ResourcesPage() {
                   onClick={() => setSelectedCategory(category.id)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
                     selectedCategory === category.id
-                      ? 'bg-[#405B53] text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -321,7 +293,7 @@ export default function ResourcesPage() {
                 setSearchTerm('')
                 setSelectedCategory('all')
               }}
-              className="bg-[#405B53] text-white px-6 py-2 rounded-lg hover:bg-green-700"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-500"
             >
               Clear Filters
             </button>
@@ -329,23 +301,23 @@ export default function ResourcesPage() {
         )}
 
         {/* Bottom CTA */}
-        <div className="mt-16 bg-[#405B53] rounded-lg p-8 text-center">
+        <div className="mt-16 bg-blue-600 rounded-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
             Ready to Start Your Pitch?
           </h2>
-          <p className="text-green-100 mb-6 max-w-2xl mx-auto">
+          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
             Use these resources to create compelling pitches and connect with investors on PitchMoto.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
-              className="bg-[#E64E1B] text-white px-8 py-3 rounded-lg hover:bg-orange-600 font-medium"
+              className="bg-white text-blue-600 px-8 py-3 rounded-lg hover:bg-gray-100 font-medium"
             >
               Create Your Pitch
             </Link>
             <Link
               href="/how-it-works"
-              className="bg-white text-[#405B53] px-8 py-3 rounded-lg hover:bg-gray-100 font-medium"
+              className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 font-medium"
             >
               Learn How It Works
             </Link>
@@ -382,11 +354,11 @@ function ResourceCard({ resource, featured = false }: ResourceCardProps) {
 
   return (
     <div className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6 cursor-pointer ${
-      featured ? 'ring-2 ring-[#E64E1B] ring-opacity-50' : ''
+      featured ? 'ring-2 ring-blue-600 ring-opacity-50' : ''
     }`} onClick={handleClick}>
       {featured && (
         <div className="mb-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
             Featured
           </span>
         </div>

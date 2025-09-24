@@ -7,7 +7,9 @@ export async function POST(request: NextRequest) {
       userId, 
       email, 
       fullName, 
-      userType = 'founder' 
+      userType = 'founder',
+      linkedinUrl,
+      websiteUrl
     } = await request.json()
 
     // Validate required fields
@@ -42,8 +44,8 @@ export async function POST(request: NextRequest) {
         bio: null,
         profile_image_url: null,
         location: null,
-        linkedin_url: null,
-        website: null
+        linkedin_url: linkedinUrl || null,
+        website: websiteUrl || null
       })
       .select()
       .single()
