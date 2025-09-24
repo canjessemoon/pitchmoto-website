@@ -74,3 +74,16 @@ temp/
 # Coverage reports
 coverage/
 *.lcov
+
+# Debug/test files that may contain secrets
+debug*.js
+check*.js
+test*.js
+*-debug.js
+*-test.js
+DEBUG*.md
+AUDIT*.sql
+verify*.js
+fix*.js
+temp*.js
+scratch*.js
