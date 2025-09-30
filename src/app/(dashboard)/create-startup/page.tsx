@@ -18,6 +18,7 @@ interface StartupFormData {
   industry: string
   stage: string
   fundingGoal: number
+  isNotRaisingFunding: boolean
   country: string
   website: string
   tags: string[]
@@ -54,6 +55,7 @@ export default function CreateStartupPage() {
     industry: '',
     stage: '',
     fundingGoal: 100000,
+    isNotRaisingFunding: false,
     country: '',
     website: '',
     tags: [],
@@ -139,7 +141,8 @@ export default function CreateStartupPage() {
           description: formData.description,
           industry: formData.industry,
           stage: formData.stage,
-          funding_goal: formData.fundingGoal,
+          funding_goal: formData.isNotRaisingFunding ? 0 : formData.fundingGoal,
+          is_not_raising_funding: formData.isNotRaisingFunding,
           country: formData.country || null,
           website_url: formData.website || null,
           tags: formData.tags
@@ -443,23 +446,49 @@ export default function CreateStartupPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Funding Goal * <span className="text-gray-500">(USD)</span>
+                  Funding Goal <span className="text-gray-500">(USD)</span>
                 </label>
                 <input
                   type="number"
                   value={formData.fundingGoal}
-                  onChange={(e) => updateFormData('fundingGoal', Math.max(parseInt(e.target.value) || 1000, 1000))}
-                  min="1000"
+                  onChange={(e) => updateFormData('fundingGoal', parseInt(e.target.value) || 0)}
+                  min="0"
                   step="1000"
                   placeholder="100000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                  disabled={formData.isNotRaisingFunding}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent ${formData.isNotRaisingFunding ? 'bg-gray-100 text-gray-500' : ''}`}
                 />
                 <p className="text-gray-500 text-sm mt-1">
-                  ${formData.fundingGoal.toLocaleString()} (minimum $1,000)
+                  {formData.isNotRaisingFunding ? 'Not raising funding at this time' : `$${formData.fundingGoal.toLocaleString()}`}
                 </p>
                 <p className="text-blue-600 text-sm mt-1">
                   💡 Tip: This should match the funding ask in your pitch decks for consistency
                 </p>
+
+                {/* Not raising funding checkbox */}
+                <div className="mt-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isNotRaisingFunding}
+                      onChange={(e) => {
+                        updateFormData('isNotRaisingFunding', e.target.checked)
+                        if (e.target.checked) {
+                          updateFormData('fundingGoal', 0)
+                        } else {
+                          updateFormData('fundingGoal', 100000)
+                        }
+                      }}
+                      className="h-4 w-4 text-[#405B53] focus:ring-[#405B53] border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      Not raising funding at this time
+                    </span>
+                  </label>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Check this if you're showcasing your startup but not actively fundraising
+                  </p>
+                </div>
               </div>
 
               <div>

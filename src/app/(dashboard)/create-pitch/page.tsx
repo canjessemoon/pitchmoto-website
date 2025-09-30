@@ -14,6 +14,7 @@ interface PitchFormData {
   title: string
   content: string
   fundingAsk: number
+  isNotRaisingFunding: boolean
   pitchType: 'slide' | 'video' | 'text'
   deckFile: File | null
   videoFile: File | null
@@ -46,6 +47,7 @@ export default function CreatePitchPage() {
     title: '',
     content: '',
     fundingAsk: 100000,
+    isNotRaisingFunding: false,
     pitchType: 'slide',
     deckFile: null,
     videoFile: null,
@@ -137,7 +139,7 @@ export default function CreatePitchPage() {
       case 2:
         return formData.title.length >= 5 && 
                formData.content.length >= 50 &&
-               formData.fundingAsk >= 1000
+               formData.fundingAsk >= 0
       case 3:
         // At least one file should be uploaded or video URL provided
         return formData.deckFile || formData.videoUrl.trim() !== ''
@@ -197,7 +199,8 @@ export default function CreatePitchPage() {
         title: formData.title,
         content: formData.content,
         pitch_type: pitchType,
-        funding_ask: formData.fundingAsk
+        funding_ask: formData.isNotRaisingFunding ? 0 : formData.fundingAsk,
+        is_not_raising_funding: formData.isNotRaisingFunding
       }
 
       // Include uploaded deck path if available
@@ -432,23 +435,49 @@ export default function CreatePitchPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Funding Ask * <span className="text-gray-500">(USD)</span>
+                  Funding Ask <span className="text-gray-500">(USD)</span>
                 </label>
                 <input
                   type="number"
                   value={formData.fundingAsk}
                   onChange={(e) => updateFormData('fundingAsk', parseInt(e.target.value) || 0)}
-                  min="1000"
+                  min="0"
                   step="1000"
                   placeholder="100000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
+                  disabled={formData.isNotRaisingFunding}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent ${formData.isNotRaisingFunding ? 'bg-gray-100 text-gray-500' : ''}`}
                 />
                 <p className="text-gray-500 text-sm mt-1">
-                  ${formData.fundingAsk.toLocaleString()} (minimum $1,000)
+                  {formData.isNotRaisingFunding ? 'Not raising funding at this time' : `$${formData.fundingAsk.toLocaleString()}`}
                 </p>
                 <p className="text-blue-600 text-sm mt-1">
                   💡 Tip: Keep this consistent with your startup's funding goal for clarity
                 </p>
+
+                {/* Not raising funding checkbox */}
+                <div className="mt-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isNotRaisingFunding}
+                      onChange={(e) => {
+                        updateFormData('isNotRaisingFunding', e.target.checked)
+                        if (e.target.checked) {
+                          updateFormData('fundingAsk', 0)
+                        } else {
+                          updateFormData('fundingAsk', 100000)
+                        }
+                      }}
+                      className="h-4 w-4 text-[#405B53] focus:ring-[#405B53] border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      Not raising funding at this time
+                    </span>
+                  </label>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Check this if this pitch is not seeking funding
+                  </p>
+                </div>
               </div>
             </div>
           )}

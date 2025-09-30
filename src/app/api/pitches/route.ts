@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('API: Creating pitch with data:', body)
 
-    const { startup_id, title, content, pitch_type, funding_ask, slide_url, video_url } = body
+    const { startup_id, title, content, pitch_type, funding_ask, slide_url, video_url, is_not_raising_funding } = body
 
     // Basic validation
     if (!startup_id || !title || !content || !pitch_type) {
@@ -199,8 +199,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Add funding_ask if provided
-    if (funding_ask) {
+    if (funding_ask !== undefined && funding_ask !== null) {
       insertData.funding_ask = funding_ask
+    }
+
+    // Add not raising funding flag
+    if (is_not_raising_funding !== undefined) {
+      insertData.is_not_raising_funding = is_not_raising_funding
     }
 
     // Add file URLs if provided

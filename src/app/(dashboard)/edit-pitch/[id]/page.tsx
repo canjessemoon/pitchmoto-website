@@ -178,7 +178,7 @@ export default function EditPitchPage() {
     return (
       formData.title.length >= 5 && 
       formData.content.length >= 50 &&
-      formData.funding_ask >= 1000 &&
+      formData.funding_ask >= 0 &&
       formData.startup_id !== ''
     )
   }
@@ -453,13 +453,13 @@ export default function EditPitchPage() {
                 type="number"
                 value={formData.funding_ask}
                 onChange={(e) => updateFormData('funding_ask', parseInt(e.target.value) || 0)}
-                min="1000"
+                min="0"
                 step="1000"
                 placeholder="100000"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#405B53] focus:border-transparent"
               />
               <p className="text-gray-500 text-sm mt-1">
-                ${formData.funding_ask.toLocaleString()} (minimum $1,000)
+                ${formData.funding_ask.toLocaleString()}
               </p>
             </div>
 

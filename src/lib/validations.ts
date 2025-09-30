@@ -29,7 +29,7 @@ export const startupSchema = z.object({
   description: z.string().min(50, 'Description must be at least 50 characters'),
   industry: z.string().min(2, 'Industry is required'),
   stage: z.string().min(2, 'Stage is required'),
-  fundingGoal: z.number().min(1000, 'Funding goal must be at least $1,000'),
+  fundingGoal: z.number().min(0, 'Amount cannot be negative'),
   country: z.string().optional(),
   website: z.string().url('Invalid website URL').optional().or(z.literal('')),
 })

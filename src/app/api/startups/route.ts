@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
       industry,
       stage,
       funding_goal,
+      is_not_raising_funding,
       country,
       website_url,
       tags
     } = body
 
-    // Validate required fields
-    if (!founder_id || !name || !tagline || !description || !industry || !stage || !funding_goal || funding_goal <= 0) {
+    // Validate required fields (now allowing $0 funding_goal)
+    if (!founder_id || !name || !tagline || !description || !industry || !stage || (funding_goal === undefined || funding_goal === null || funding_goal < 0)) {
       console.log('Validation failed:', { founder_id, name, tagline, description, industry, stage, funding_goal })
       return NextResponse.json(
         { error: 'Missing required fields or invalid funding goal' },
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
         stage,
         funding_ask: funding_goal, // Database expects funding_ask column
         funding_goal: funding_goal, // Also set funding_goal if it exists
+        is_not_raising_funding: is_not_raising_funding || false,
         country: country || null,
         website_url: website_url || null,
         tags: tags || []
