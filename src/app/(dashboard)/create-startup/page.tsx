@@ -56,6 +56,10 @@ export default function CreateStartupPage() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved)
+          console.log('🔄 Restored startup form data from localStorage:', { 
+            tags: parsed.tags, 
+            tagsLength: parsed.tags?.length || 0 
+          })
           // Don't restore logo file from localStorage, only form fields
           return {
             ...parsed,
@@ -684,6 +688,22 @@ export default function CreateStartupPage() {
                     </div>
                   )}
                 </div>
+
+                {formData.tags.length > 0 && (
+                  <div>
+                    <span className="font-medium text-sm">Tags:</span> 
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {formData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {formData.logoFile && (
                   <div>
