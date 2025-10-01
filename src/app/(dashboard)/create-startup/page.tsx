@@ -23,7 +23,7 @@ interface StartupFormData {
   website: string
   tags: string[]
   logoFile: File | null
-  logoUrl?: string
+  uploadedLogoPath?: string | null
 }
 
 import { FOUNDER_STAGES } from '@/lib/stages'
@@ -78,7 +78,7 @@ export default function CreateStartupPage() {
       website: '',
       tags: [],
       logoFile: null,
-      logoUrl: undefined
+      uploadedLogoPath: null
     }
   }
 
@@ -94,7 +94,7 @@ export default function CreateStartupPage() {
   // Save form data to localStorage whenever it changes
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Don't save logo file to localStorage, only form fields (keep logoUrl)
+      // Don't save logo file to localStorage, only form fields (keep uploadedLogoPath)
       const dataToSave = {
         ...formData,
         logoFile: null
@@ -122,29 +122,34 @@ export default function CreateStartupPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Upload logo immediately when selected
+  // Upload logo immediately when selected (following pitch deck upload pattern)
   const handleLogoUpload = async (file: File) => {
+    console.log('🔄 Starting logo upload:', file.name)
     try {
       // Generate temporary ID for upload since we don't have startup ID yet
       const tempId = `temp-${user?.id}-${Date.now()}`
       
+      console.log('📤 Calling storageHelpers.uploadLogo...')
       const result = await storageHelpers.uploadLogo(file, tempId)
+      console.log('📦 Upload result:', result)
+      
       if (result.error) {
-        console.error('Logo upload failed:', result.error)
-        alert('Failed to upload logo. Please try again.')
-        return
+        throw new Error(result.error.message || 'Upload failed')
       }
       
-      // Store both file and upload path
+      // Store the file and the file path (not public URL) - same pattern as pitch deck
+      console.log('💾 Updating form data with path:', result.data?.path)
       setFormData(prev => ({
         ...prev,
         logoFile: file,
-        logoUrl: result.data?.publicUrl || undefined
+        uploadedLogoPath: result.data?.path || null
       }))
       
-    } catch (error) {
-      console.error('Logo upload error:', error)
-      alert('Logo upload failed. Please try again.')
+      console.log('✅ Logo upload completed successfully')
+      return { data: result.data, error: null }
+    } catch (error: any) {
+      console.error('❌ Logo upload error:', error)
+      return { data: null, error: { message: error.message || 'Upload failed' } }
     }
   }
 
@@ -220,6 +225,7 @@ export default function CreateStartupPage() {
           is_not_raising_funding: formData.isNotRaisingFunding,
           country: formData.country || null,
           website_url: formData.website || null,
+          logo_url: formData.uploadedLogoPath || null,
           tags: formData.tags
         })
       })
@@ -604,8 +610,11 @@ export default function CreateStartupPage() {
                 </label>
                 <FileUpload
                   onUpload={async (file) => {
-                    await handleLogoUpload(file)
-                    return { data: { url: formData.logoUrl || URL.createObjectURL(file) }, error: null }
+                    const result = await handleLogoUpload(file)
+                    if (result.error) {
+                      return result
+                    }
+                    return { data: { url: URL.createObjectURL(file) }, error: null }
                   }}
                   accept="image/jpeg,image/png,image/svg+xml,image/webp"
                   maxSize={2 * 1024 * 1024} // 2MB

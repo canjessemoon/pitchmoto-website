@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       is_not_raising_funding,
       country,
       website_url,
+      logo_url,
       tags
     } = body
 
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
         is_not_raising_funding: is_not_raising_funding || false,
         country: country || null,
         website_url: website_url || null,
+        logo_url: logo_url || null,
         tags: tags || []
       })
       .select()
