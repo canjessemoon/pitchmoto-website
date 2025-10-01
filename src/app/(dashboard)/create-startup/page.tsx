@@ -23,6 +23,7 @@ interface StartupFormData {
   website: string
   tags: string[]
   logoFile: File | null
+  logoUrl?: string
 }
 
 import { FOUNDER_STAGES } from '@/lib/stages'
@@ -48,19 +49,40 @@ export default function CreateStartupPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showStageHelper, setShowStageHelper] = useState(false)
   
-  const [formData, setFormData] = useState<StartupFormData>({
-    name: '',
-    tagline: '',
-    description: '',
-    industry: '',
-    stage: '',
-    fundingGoal: 100000,
-    isNotRaisingFunding: false,
-    country: '',
-    website: '',
-    tags: [],
-    logoFile: null
-  })
+  // Initialize form data from localStorage or defaults
+  const getInitialFormData = (): StartupFormData => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('startupFormData')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          // Don't restore logo file from localStorage, only form fields
+          return {
+            ...parsed,
+            logoFile: null
+          }
+        } catch (e) {
+          console.warn('Failed to parse saved startup form data')
+        }
+      }
+    }
+    return {
+      name: '',
+      tagline: '',
+      description: '',
+      industry: '',
+      stage: '',
+      fundingGoal: 100000,
+      isNotRaisingFunding: false,
+      country: '',
+      website: '',
+      tags: [],
+      logoFile: null,
+      logoUrl: undefined
+    }
+  }
+
+  const [formData, setFormData] = useState<StartupFormData>(getInitialFormData)
 
   // Redirect if not a founder
   React.useEffect(() => {
@@ -69,8 +91,61 @@ export default function CreateStartupPage() {
     }
   }, [user?.profile, router])
 
+  // Save form data to localStorage whenever it changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Don't save logo file to localStorage, only form fields (keep logoUrl)
+      const dataToSave = {
+        ...formData,
+        logoFile: null
+      }
+      localStorage.setItem('startupFormData', JSON.stringify(dataToSave))
+    }
+  }, [formData])
+
+  // Clear localStorage on successful submission
+  const clearSavedData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('startupFormData')
+    }
+  }
+
+  // Handle cancel with confirmation
+  const handleCancel = () => {
+    if (window.confirm('Are you sure you want to cancel? Your progress will be lost.')) {
+      clearSavedData()
+      router.push('/dashboard')
+    }
+  }
+
   const updateFormData = (field: keyof StartupFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Upload logo immediately when selected
+  const handleLogoUpload = async (file: File) => {
+    try {
+      // Generate temporary ID for upload since we don't have startup ID yet
+      const tempId = `temp-${user?.id}-${Date.now()}`
+      
+      const result = await storageHelpers.uploadLogo(file, tempId)
+      if (result.error) {
+        console.error('Logo upload failed:', result.error)
+        alert('Failed to upload logo. Please try again.')
+        return
+      }
+      
+      // Store both file and upload path
+      setFormData(prev => ({
+        ...prev,
+        logoFile: file,
+        logoUrl: result.data?.publicUrl || undefined
+      }))
+      
+    } catch (error) {
+      console.error('Logo upload error:', error)
+      alert('Logo upload failed. Please try again.')
+    }
   }
 
   const nextStep = () => {
@@ -172,6 +247,9 @@ export default function CreateStartupPage() {
       // TODO: Move logo upload to a separate step or make it asynchronous
 
       console.log('Startup creation completed successfully!')
+      
+      // Clear saved form data on success
+      clearSavedData()
 
       // Success! Redirect to startup dashboard
       router.push('/dashboard?tab=startup&created=true')
@@ -526,8 +604,8 @@ export default function CreateStartupPage() {
                 </label>
                 <FileUpload
                   onUpload={async (file) => {
-                    updateFormData('logoFile', file)
-                    return { data: { url: URL.createObjectURL(file) }, error: null }
+                    await handleLogoUpload(file)
+                    return { data: { url: formData.logoUrl || URL.createObjectURL(file) }, error: null }
                   }}
                   accept="image/jpeg,image/png,image/svg+xml,image/webp"
                   maxSize={2 * 1024 * 1024} // 2MB
@@ -616,18 +694,22 @@ export default function CreateStartupPage() {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <button
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
-              currentStep === 1
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Previous
-          </button>
+          {currentStep === 1 ? (
+            <button
+              onClick={handleCancel}
+              className="flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={prevStep}
+              className="flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Previous
+            </button>
+          )}
 
           {currentStep < 4 ? (
             <button

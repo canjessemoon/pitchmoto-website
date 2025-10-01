@@ -42,19 +42,40 @@ export default function CreatePitchPage() {
   const [startups, setStartups] = useState<Startup[]>([])
   const [loadingStartups, setLoadingStartups] = useState(true)
   
-  const [formData, setFormData] = useState<PitchFormData>({
-    startupId: '',
-    title: '',
-    content: '',
-    fundingAsk: 100000,
-    isNotRaisingFunding: false,
-    pitchType: 'slide',
-    deckFile: null,
-    videoFile: null,
-    videoUrl: '',
-    rulesAccepted: false,
-    uploadedDeckPath: null
-  })
+  // Initialize form data from localStorage or defaults
+  const getInitialFormData = (): PitchFormData => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('pitchFormData')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          // Don't restore files from localStorage, only form fields
+          return {
+            ...parsed,
+            deckFile: null,
+            videoFile: null
+          }
+        } catch (e) {
+          console.warn('Failed to parse saved pitch form data')
+        }
+      }
+    }
+    return {
+      startupId: '',
+      title: '',
+      content: '',
+      fundingAsk: 100000,
+      isNotRaisingFunding: false,
+      pitchType: 'slide',
+      deckFile: null,
+      videoFile: null,
+      videoUrl: '',
+      rulesAccepted: false,
+      uploadedDeckPath: null
+    }
+  }
+
+  const [formData, setFormData] = useState<PitchFormData>(getInitialFormData)
 
   const loadUserStartups = useCallback(async () => {
     if (!user?.id) return
@@ -88,8 +109,75 @@ export default function CreatePitchPage() {
     }
   }, [user?.profile, router])
 
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Don't save files to localStorage, only form fields
+      const dataToSave = {
+        ...formData,
+        deckFile: null,
+        videoFile: null
+      }
+      localStorage.setItem('pitchFormData', JSON.stringify(dataToSave))
+    }
+  }, [formData])
+
+  // Clear localStorage on successful submission
+  const clearSavedData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pitchFormData')
+    }
+  }
+
+  // Handle cancel with confirmation
+  const handleCancel = () => {
+    if (window.confirm('Are you sure you want to cancel? Your progress will be lost.')) {
+      clearSavedData()
+      router.push('/dashboard')
+    }
+  }
+
   const updateFormData = (field: keyof PitchFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Upload files immediately when selected
+  const handleFileUpload = async (file: File, type: 'deck' | 'video') => {
+    try {
+      if (!formData.startupId) {
+        alert('Please select a startup first')
+        return
+      }
+
+      if (type === 'deck') {
+        const result = await storageHelpers.uploadPitchDeck(file, formData.startupId)
+        if (result.error) {
+          console.error('Deck upload failed:', result.error)
+          alert('Failed to upload pitch deck. Please try again.')
+          return
+        }
+        setFormData(prev => ({
+          ...prev,
+          deckFile: file,
+          uploadedDeckPath: result.data?.path || null
+        }))
+      } else if (type === 'video') {
+        const result = await storageHelpers.uploadPitchVideo(file, formData.startupId)
+        if (result.error) {
+          console.error('Video upload failed:', result.error)
+          alert('Failed to upload video. Please try again.')
+          return
+        }
+        setFormData(prev => ({
+          ...prev,
+          videoFile: file,
+          videoUrl: result.data?.signedUrl || ''
+        }))
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Upload failed. Please try again.')
+    }
   }
 
   // Handle pitch deck upload
@@ -248,6 +336,9 @@ export default function CreatePitchPage() {
       // This can be added in a future iteration
 
       console.log('Pitch creation completed successfully!')
+      
+      // Clear saved form data on success
+      clearSavedData()
 
       // Success! Redirect to dashboard
       router.push('/dashboard?tab=pitches&saved=true')
@@ -710,18 +801,22 @@ export default function CreatePitchPage() {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <button
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
-              currentStep === 1
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Previous
-          </button>
+          {currentStep === 1 ? (
+            <button
+              onClick={handleCancel}
+              className="flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={prevStep}
+              className="flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Previous
+            </button>
+          )}
 
           {currentStep < 5 ? (
             <button
