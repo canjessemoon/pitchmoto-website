@@ -61,6 +61,7 @@ export interface Database {
           pitch_deck_url: string | null
           logo_url: string | null
           website_url: string | null
+          is_not_raising_funding: boolean
           created_at: string
           updated_at: string
         }
@@ -77,6 +78,7 @@ export interface Database {
           pitch_deck_url?: string | null
           logo_url?: string | null
           website_url?: string | null
+          is_not_raising_funding?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -93,6 +95,7 @@ export interface Database {
           pitch_deck_url?: string | null
           logo_url?: string | null
           website_url?: string | null
+          is_not_raising_funding?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -109,6 +112,7 @@ export interface Database {
           slide_url: string | null
           upvote_count: number
           status: 'draft' | 'published' | 'archived'
+          is_not_raising_funding: boolean
           created_at: string
           updated_at: string
         }
@@ -123,6 +127,7 @@ export interface Database {
           slide_url?: string | null
           upvote_count?: number
           status?: 'draft' | 'published' | 'archived'
+          is_not_raising_funding?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -137,6 +142,7 @@ export interface Database {
           slide_url?: string | null
           upvote_count?: number
           status?: 'draft' | 'published' | 'archived'
+          is_not_raising_funding?: boolean
           created_at?: string
           updated_at?: string
         }

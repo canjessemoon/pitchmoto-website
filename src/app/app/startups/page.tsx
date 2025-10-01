@@ -5,6 +5,7 @@ import { useAuth } from '@/components/providers'
 import Link from 'next/link'
 import { Search, Filter, Grid, List, Clock, MapPin, Users } from 'lucide-react'
 import { INDUSTRIES, STARTUP_STAGES } from '@/lib/utils'
+import { formatFundingAmount } from '@/lib/funding-display'
 
 interface Startup {
   id: string
@@ -19,6 +20,7 @@ interface Startup {
   logo_url: string | null
   tags?: string[]
   created_at: string
+  is_not_raising_funding?: boolean
 }
 
 interface Pitch {
@@ -28,6 +30,7 @@ interface Pitch {
   funding_ask: number | null
   created_at: string
   startup: Startup
+  is_not_raising_funding?: boolean
 }
 
 export default function StartupsPage() {
@@ -367,11 +370,9 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
               )}
             </div>
 
-            {pitch.funding_ask && (
               <p className="text-sm text-gray-600 mb-2">
-                <strong>Seeking:</strong> ${pitch.funding_ask.toLocaleString()}
+                <strong>Seeking:</strong> {formatFundingAmount(pitch.funding_ask || 0, pitch.is_not_raising_funding || false)}
               </p>
-            )}
           </div>
 
           <div className="ml-4">
@@ -432,7 +433,9 @@ function StartupCard({ pitch, viewMode }: StartupCardProps) {
           
           {pitch.funding_ask && (
             <div className="flex items-center text-sm text-gray-600">
-              <span className="font-medium">Seeking: ${pitch.funding_ask.toLocaleString()}</span>
+              <span className="font-medium">
+                Seeking: {formatFundingAmount(pitch.funding_ask || 0, pitch.is_not_raising_funding || false)}
+              </span>
             </div>
           )}
         </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { Search, Filter, Heart, ExternalLink, MapPin, Users, Calendar, Trash2, AlertCircle } from 'lucide-react'
 import { INDUSTRIES, STARTUP_STAGES } from '@/lib/utils'
+import { formatFundingAmount } from '@/lib/funding-display'
 
 interface Startup {
   id: string
@@ -21,6 +22,7 @@ interface Startup {
   website_url: string | null
   tags?: string[]
   created_at: string
+  is_not_raising_funding?: boolean
 }
 
 interface WatchlistItem {
@@ -446,7 +448,9 @@ function WatchlistCard({ item, onRemove, isRemoving }: WatchlistCardProps) {
           
           {startup.funding_goal && (
             <div className="flex items-center text-sm text-gray-600">
-              <span className="font-medium">Goal: ${startup.funding_goal.toLocaleString()}</span>
+              <span className="font-medium">
+                Goal: {formatFundingAmount(startup.funding_goal || 0, startup.is_not_raising_funding || false)}
+              </span>
             </div>
           )}
         </div>

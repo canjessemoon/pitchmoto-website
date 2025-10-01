@@ -4,6 +4,7 @@ import { useAuth } from '@/components/providers'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { formatFundingAmount, getFundingDisplayClass } from '@/lib/funding-display'
 
 interface Pitch {
   id: string
@@ -23,6 +24,7 @@ interface Pitch {
   updated_at: string
   video_url?: string | null
   slide_url?: string | null
+  is_not_raising_funding?: boolean
   startup: {
     id: string
     name: string
@@ -163,7 +165,7 @@ function PreviewModal({ pitch, isOpen, onClose }: PreviewModalProps) {
               </h3>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-2xl font-bold text-blue-700">
-                  ${pitch.funding_ask ? pitch.funding_ask.toLocaleString() : 'Not specified'}
+                  {formatFundingAmount(pitch.funding_ask || 0, pitch.is_not_raising_funding || false)}
                 </p>
               </div>
             </div>
@@ -644,7 +646,9 @@ export default function PitchesPage() {
                       {pitch.funding_ask && (
                         <div className="mb-3">
                           <span className="text-gray-600 text-sm">Funding Ask: </span>
-                          <span className="text-lg font-bold text-green-600">${pitch.funding_ask.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {formatFundingAmount(pitch.funding_ask || 0, pitch.is_not_raising_funding || false)}
+                          </span>
                         </div>
                       )}
 
