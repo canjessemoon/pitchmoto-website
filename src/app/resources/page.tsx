@@ -19,37 +19,54 @@ interface Resource {
 }
 
 const resources: Resource[] = [
-  // Pitch Deck Templates
+  // Professional Pitch Deck Templates
   {
-    id: 'pitch-deck-template-standard',
-    title: 'Standard Pitch Deck Template',
-    description: 'A comprehensive 12-slide pitch deck template covering all essential elements investors want to see.',
+    id: 'ycombinator-seed-deck',
+    title: 'Y Combinator Seed Round Pitch Deck Template',
+    description: 'The definitive template from YC for seed stage fundraising. Includes all essential slides with proven structure used by successful YC companies.',
     category: 'template',
     type: 'download',
-    downloadUrl: '/resources/templates/standard-pitch-deck.pptx',
+    downloadUrl: '/templates/YC_Pitch_Deck_Template_Pitchmoto.pptx',
+    url: 'https://www.ycombinator.com/library/2u-how-to-build-your-seed-round-pitch-deck',
     icon: Presentation,
     featured: true,
-    tags: ['pitch deck', 'presentation', 'investors', 'fundraising']
+    tags: ['Y Combinator', 'seed round', 'fundraising', 'startup', 'YC']
   },
   {
-    id: 'pitch-deck-template-saas',
-    title: 'SaaS Pitch Deck Template',
-    description: 'Specialized template for SaaS startups with metrics-focused slides and subscription model explanations.',
+    id: 'carta-series-a-deck',
+    title: 'Carta Series A Pitch Deck Template', 
+    description: 'Advanced template for Series A fundraising with detailed product sections and growth metrics. Based on Carta\'s comprehensive fundraising guide.',
     category: 'template',
     type: 'download',
-    downloadUrl: '/resources/templates/saas-pitch-deck.pptx',
+    downloadUrl: '/templates/Carta_Pitch_Deck_Template_Pitchmoto.pptx',
+    url: 'https://carta.com/learn/startups/fundraising/pitch-deck/series-a-pitch-deck/#6-product',
     icon: Presentation,
-    tags: ['saas', 'software', 'subscription', 'metrics']
+    featured: true,
+    tags: ['Carta', 'Series A', 'growth', 'metrics', 'fundraising']
   },
   {
-    id: 'pitch-deck-template-ecommerce',
-    title: 'E-commerce Pitch Deck Template',
-    description: 'Template tailored for e-commerce and marketplace startups with customer acquisition focus.',
+    id: 'sequoia-business-plan',
+    title: 'Sequoia Capital Business Plan Template',
+    description: 'Comprehensive business plan template from Sequoia Capital covering strategy, market analysis, and long-term vision.',
+    category: 'template',
+    type: 'download', 
+    downloadUrl: '/templates/Sequoia_Pitch_Deck_Template_Pitchmoto.pptx',
+    url: 'https://www.sequoiacap.com/article/writing-a-business-plan/',
+    icon: Presentation,
+    featured: true,
+    tags: ['Sequoia Capital', 'business plan', 'strategy', 'market analysis']
+  },
+  {
+    id: 'mars-investor-deck',
+    title: 'MaRS Discovery District Investor Pitch Template',
+    description: 'Complete investor presentation template with detailed guidance for each section. Developed by MaRS for Canadian startups.',
     category: 'template',
     type: 'download',
-    downloadUrl: '/resources/templates/ecommerce-pitch-deck.pptx',
+    downloadUrl: '/templates/MaRS_DD_Pitch_Deck_Template_Pitchmoto.pptx', 
+    url: 'https://learn.marsdd.com/article/how-to-create-a-pitch-deck-for-investors/',
     icon: Presentation,
-    tags: ['ecommerce', 'marketplace', 'retail', 'customer acquisition']
+    featured: false,
+    tags: ['MaRS', 'investor pitch', 'Canada', 'guidance', 'comprehensive']
   },
 
   // Financial Models
@@ -75,28 +92,6 @@ const resources: Resource[] = [
     tags: ['saas', 'ltv', 'cac', 'mrr', 'churn']
   },
 
-  // One-Pagers
-  {
-    id: 'one-pager-template',
-    title: 'Startup One-Pager Template',
-    description: 'Concise one-page summary template that captures your startup\'s essence for quick investor reviews.',
-    category: 'template',
-    type: 'download',
-    downloadUrl: '/resources/templates/startup-one-pager.docx',
-    icon: FileText,
-    featured: true,
-    tags: ['one pager', 'summary', 'overview', 'investors']
-  },
-  {
-    id: 'executive-summary-template',
-    title: 'Executive Summary Template',
-    description: 'Professional executive summary template for detailed business plan summaries.',
-    category: 'template',
-    type: 'download',
-    downloadUrl: '/resources/templates/executive-summary.docx',
-    icon: FileText,
-    tags: ['executive summary', 'business plan', 'detailed']
-  },
 
   // Video Guides
   {
@@ -336,13 +331,25 @@ interface ResourceCardProps {
 function ResourceCard({ resource, featured = false }: ResourceCardProps) {
   const IconComponent = resource.icon
 
-  const handleClick = () => {
-    if (resource.type === 'download' && resource.downloadUrl) {
-      // Handle download
+  const handleDownload = () => {
+    if (resource.downloadUrl) {
       const link = document.createElement('a')
       link.href = resource.downloadUrl
       link.download = resource.title
       link.click()
+    }
+  }
+
+  const handleViewGuide = () => {
+    if (resource.url) {
+      window.open(resource.url, '_blank')
+    }
+  }
+
+  const handleClick = () => {
+    // For templates with both download and guide, prioritize download
+    if (resource.type === 'download' && resource.downloadUrl) {
+      handleDownload()
     } else if (resource.url) {
       if (resource.type === 'external') {
         window.open(resource.url, '_blank')
@@ -393,23 +400,43 @@ function ResourceCard({ resource, featured = false }: ResourceCardProps) {
             ))}
           </div>
           
-          <div className="flex items-center justify-between">
-            <span className={`text-sm font-medium ${
-              resource.type === 'download' ? 'text-blue-600' :
-              resource.type === 'external' ? 'text-purple-600' :
-              'text-green-600'
-            }`}>
-              {resource.type === 'download' ? 'Download' :
-               resource.type === 'external' ? 'External Tool' :
-               'Read Guide'}
-            </span>
-            
-            <div className="text-gray-400">
-              {resource.type === 'download' && <Download className="h-4 w-4" />}
-              {resource.type === 'external' && <ExternalLink className="h-4 w-4" />}
-              {(resource.type === 'article' || resource.type === 'video') && <BookOpen className="h-4 w-4" />}
+          {/* Action buttons for templates with both download and reference */}
+          {resource.type === 'download' && resource.downloadUrl && resource.url ? (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleViewGuide(); }}
+                className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View Guide
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${
+                resource.type === 'download' ? 'text-blue-600' :
+                resource.type === 'external' ? 'text-purple-600' :
+                'text-green-600'
+              }`}>
+                {resource.type === 'download' ? 'Download' :
+                 resource.type === 'external' ? 'External Tool' :
+                 'Read Guide'}
+              </span>
+              
+              <div className="text-gray-400">
+                {resource.type === 'download' && <Download className="h-4 w-4" />}
+                {resource.type === 'external' && <ExternalLink className="h-4 w-4" />}
+                {(resource.type === 'article' || resource.type === 'video') && <BookOpen className="h-4 w-4" />}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
